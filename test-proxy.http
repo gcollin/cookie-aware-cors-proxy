@@ -1,0 +1,4 @@
+### GET request with disabled redirects
+# @no-redirect
+GET http://localhost:3000/proxy/?url=https://www.newpharma.fr&engine=chrome
+
