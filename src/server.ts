@@ -227,12 +227,12 @@ app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
         if( logMode)
             console.log(logId+"Sending request: "+config.method+':'+config.url);
 
-        let response:AxiosResponse|RequestResponse|null=null;
+        let response:AxiosResponse|null=null;
 
         if (req.query['engine']!=null) {
             if( (req.query['engine'] as string).toLowerCase()==='chrome') {
-                const reqConfig = toRequestConfig (config);
-                const chromeResult = await chromeEngine(config.url, reqConfig);
+                config.responseType='text';
+                const chromeResult = await chromeEngine.request(config);
                 if (chromeResult!=null) {
                     response = {
                         status:chromeResult.status,
@@ -269,8 +269,8 @@ app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
             return;
         }
 
-        const responseStatus = (response as any).status??(response as any).statusCode;
-        const responseBody= (response as any).body??(response as any).data;
+        const responseStatus = response.status;
+        const responseBody= response.data;
         if( debugMode)
             console.log(logId+"Received response: ", convertForLog(response));
         if( logMode)
@@ -317,7 +317,7 @@ app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
         }
 
         res.status(responseStatus);
-        res.statusMessage=(response as any).statusText??(response as any).statusMessage;
+        res.statusMessage=response.statusText;
             // Handle the locations of the redirect
         if (responseStatus>=300 && responseStatus< 400) {
             const rootLocation=response.headers['location'];
@@ -404,17 +404,7 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response | Re
             ret.method=expressResponse.req.method;
             ret.headers=expressResponse.req.headers;
         }
-    } else if ((item as any).toJSON!=null) {
-        // It's a RequestResponse
-        const requestResponse = item as RequestResponse;
-        ret.status=requestResponse.statusCode;
-        ret.message=requestResponse.statusMessage;
-        if (requestResponse.request!=null) {
-            ret.url=requestResponse.request.uri;
-            ret.method=requestResponse.request.method;
-            ret.headers=requestResponse.request.headers;
-        }
-    }else {
+    } else  {
         const axiosResponse = item as AxiosResponse;
         ret.status=axiosResponse.status;
         ret.message=axiosResponse.statusText;

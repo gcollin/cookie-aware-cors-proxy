@@ -1,44 +1,53 @@
-import {CookieJar, OptionsWithUrl, Request} from "request";
+import {OptionsWithUrl, Request} from "request";
 
 import {createBrowser} from './createBrowser';
-import {Cookie} from 'tough-cookie';
-import {handleCaptcha} from './handleCaptcha';
+import {Cookie, CookieJar} from 'tough-cookie';
 import {isCloudflareJSChallenge} from './utils';
-import {Options, OptionsWithUri} from "request-promise-native";
+import {OptionsWithUri} from "request-promise-native";
 import {Url} from "url";
+import {AxiosRequestConfig, AxiosResponse} from "axios";
+import {Protocol} from "puppeteer";
 
 const DEFAULT_EXPIRATION_TIME_IN_SECONDS = 3000;
 
-function convertCookieToTough(cookie: Cookie) {
-    const {key, value, expires, domain, path} = cookie;
-    const isExpiresValid = expires && typeof expires === 'number';
+function convertCookieToTough(cookie: Protocol.Network.Cookie): Cookie {
+    const {name, value, expires, domain, path, secure,httpOnly, sameSite} = cookie;
+   const isExpiresValid = expires && typeof expires === 'number';
 
     const expiresDate = isExpiresValid
         ? new Date(expires * 1000)
         : new Date(Date.now() + DEFAULT_EXPIRATION_TIME_IN_SECONDS * 1000);
 
-    let cleanedDomain;
+ /*   let cleanedDomain;
     if( domain!=null) {
         cleanedDomain=domain.startsWith('.') ? domain.substring(1) : domain??undefined
-    }
+    }*/
     return new Cookie({
-        key: key,
+        key: name,
         value,
         expires: expiresDate,
-        domain: cleanedDomain,
-        path: path??undefined
+        domain: domain,
+        path: path??undefined,
+        secure:secure,
+        sameSite:sameSite,
+        httpOnly:httpOnly
     });
 }
 
-export async function fillCookiesJar(request: Request, options:Options):Promise<{status:number, statusText:string, data?:any, cookies?:any}> {
-    const jar = options.jar;
+function toCookieJar(jar: CookieJar, url: string,puppeteerCoookies: Protocol.Network.Cookie[]) {
+    for (const cookie of puppeteerCoookies) {
+        jar.setCookie(convertCookieToTough(cookie),url);
+    }
+}
+
+export async function fillCookiesJar(request: Request, options:AxiosRequestConfig, jar:CookieJar):Promise<AxiosResponse> {
+    //const jar = options.jar;
     let url = (options as OptionsWithUrl).url || (options as OptionsWithUri).uri;
     if (typeof url !== 'string') {
         url = (url as Url).toString();
     }
     let browser;
 
-    let cookies;
     try {
         browser = await createBrowser(options);
         const page = await browser.newPage();
@@ -67,38 +76,40 @@ export async function fillCookiesJar(request: Request, options:Options):Promise<
             await page.select('#table-apps_length select', "5000");
             await new Promise((resolve) => setTimeout(resolve, 10000));
             content = await page.content();
-            cookies = await page.cookies();
+            toCookieJar(jar, page.url(), await page.cookies());
             return {
                 status:200,
                 statusText:"OK",
                 data:content,
-                cookies: cookies
+                headers:{},
+                config:options
             };
         } catch (err:any) {
             if( err.message==='No element found for selector: #table-apps_length select') {
-                cookies = await page.cookies();
+                toCookieJar(jar, page.url(), await page.cookies());
                 return {
                     status:200,
                     statusText:"OK",
                     data:content,
-                    cookies: cookies
+                    headers:{},
+                    config:options
                 };
             } else {
                 console.log(err);
-                return convertError (err);
+                return convertError (err, options);
             }
         }
 
     } catch (err) {
         console.log(err);
-        return convertError (err);
+        return convertError (err, options);
     } finally {
         if (browser)
             await browser.close();
     }
 }
 
-function convertError (err:any): {status:number, statusText:string} {
+function convertError (err:any, config:AxiosRequestConfig): AxiosResponse {
     let errorMsg=err;
     if( typeof err !== "string") {
         errorMsg=err.message??err.content??err.body??err.data;
@@ -108,7 +119,10 @@ function convertError (err:any): {status:number, statusText:string} {
     }
     return {
         status:500,
-        statusText:errorMsg
+        statusText:errorMsg,
+        data:undefined,
+        headers:{},
+        config:config
     };
 
 }

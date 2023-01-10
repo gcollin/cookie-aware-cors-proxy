@@ -1,59 +1,69 @@
-import {CookieJar, CoreOptions, Options, RequestResponse, RequiredUriUrl, UriOptions, UrlOptions} from "request";
+import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from "axios";
 
-const request = require('request-promise-native');
 const { isProtectedByStormwall, getStormwallCookie } = require('stormwall-bypass');
 import { getUserAgent } from './utils';
 import { fillCookiesJar } from './fillCookiesJar';
 import { isCloudflareJSChallenge, isCloudflareCaptchaChallenge } from './utils';
-import {RequestError} from "request-promise-native/errors";
-import {RequestPromiseOptions} from "request-promise-native";
+import {CookieJar} from "tough-cookie";
 
-function isCloudflareIUAMError(error: RequestError) {
+function isCloudflareIUAMError(error: AxiosError<string>) {
   if (error.response) {
-    const { body } = error.response;
-    return isCloudflareJSChallenge(body) || isCloudflareCaptchaChallenge(body);
+    const { data } = error.response;
+    return isCloudflareJSChallenge(data) || isCloudflareCaptchaChallenge(data);
   }
   return false;
 }
 
-async function handleError(error:RequestError):Promise<{status:number, statusText:string, data?:any, cookies?:any}> {
+async function handleError(error:AxiosError<string>, jar:CookieJar):Promise<AxiosResponse> {
   if (isCloudflareIUAMError(error)) {
-    const { options } = error;
-    let content = await fillCookiesJar(request, options);
-    return content;
+    if (error.config!=null) {
+        let response = await fillCookiesJar(error.request, error.config, jar);
+        return response;
+    }
   }
   throw error;
 }
 
-async function handleResponse(response:RequestResponse, options:  RequiredUriUrl & RequestPromiseOptions){
-  const jar = options.jar as CookieJar;
-  const targetUrl = (options as UriOptions).uri??(options as UrlOptions).url;
-  const body = response.body || response;
-  if (isProtectedByStormwall(body)) {
+async function handleResponse(response:AxiosResponse<string>, options:  AxiosRequestConfig, jar:CookieJar){
+  const targetUrl = options.url;
+  const body = response.data;
+  if (isProtectedByStormwall(body) && (targetUrl!=null)) {
     const cookie = getStormwallCookie(body);
     jar.setCookie(cookie, targetUrl);
-    let response = await request(options);
-    return response.body;
+    response = await axios.request(options);
   }
-  return body;
+  return response;
 }
 
-async function cloudflareScraper(options:RequiredUriUrl & RequestPromiseOptions) {
+async function cloudflareScraper(options:AxiosRequestConfig<string>): Promise<AxiosResponse<any>> {
+    const jar= new CookieJar();
     try {
-        const response = await request({...options});
-        return handleResponse(response, options);
+        const response = await axios.request({...options});
+        return handleResponse(response, options, jar);
     } catch (err:any) {
         if( err.options!=null) {
-            let content = handleError(err);
+            let content = handleError(err, jar);
             return content;
+        } else {
+            return {
+                status:500,
+                statusText:"Error "+err,
+                headers:{},
+                data:undefined,
+                config:options
+            }
         }
     }
 }
 
-const defaultParams = {
-  jar: request.jar(),
-  headers: { 'User-Agent': getUserAgent() },
-  gzip: true
+export const chromeEngine= {
+    request<T = any>(config: AxiosRequestConfig<string>): Promise<AxiosResponse<T>> {
+        if( config.headers==null) {
+            config.headers={ 'User-Agent': getUserAgent() };
+        }else {
+            config.headers["User-Agent"]=getUserAgent();
+        }
+        config.decompress=false;
+        return cloudflareScraper(config);
+    }
 };
-
-export const chromeEngine = request.defaults(defaultParams, cloudflareScraper);

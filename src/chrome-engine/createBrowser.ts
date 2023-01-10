@@ -1,8 +1,9 @@
 import {addExtra} from 'puppeteer-extra';
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 import {getUserAgent} from './utils';
 import {Browser} from "puppeteer";
-import {Options} from "request-promise-native";
+import {AxiosRequestConfig} from "axios";
+
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
 const {
   PUPPETEER_HEADLESS = 'true',
@@ -33,31 +34,33 @@ const puppeteer = addExtra(puppeteerCore);
 const stealth = StealthPlugin();
 puppeteer.use(stealth);
 
-export async function createBrowser(options: any):Promise <Browser>{
-  const {
-    proxy = HTTP_PROXY || HTTPS_PROXY,
-    browserWSEndpoint,
-    browserUrl,
-    puppeteerOptions: userPuppeteerOptions = {}
-  } = options;
+export async function createBrowser(options: AxiosRequestConfig):Promise <Browser>{
+  const config= {
+    proxy: HTTP_PROXY || HTTPS_PROXY,
+    browserWSEndpoint: undefined,
+    browserUrl:undefined,
+    puppeteerOptions: {args:undefined}
+  };
   const ignoreHTTPSErrors = PUPPETEER_IGNORE_HTTPS_ERROR === 'true';
 
-  if (browserWSEndpoint || browserUrl) {
-    return puppeteer.connect({ browserWSEndpoint, browserURL:browserUrl, ignoreHTTPSErrors });
+  if (config.browserWSEndpoint || config.browserUrl) {
+    return puppeteer.connect({ browserWSEndpoint:config.browserWSEndpoint, browserURL:config.browserUrl, ignoreHTTPSErrors });
   }
 
   let args = ['--no-sandbox', '--disable-setuid-sandbox', '--user-agent=' + getUserAgent()];
-  if(userPuppeteerOptions.args) {
-    args = args.concat(userPuppeteerOptions.args)
+  if(config.puppeteerOptions.args) {
+    args = args.concat(config.puppeteerOptions.args)
   }
-  if (proxy) {
+/*  if (proxy) {
     args.push(`--proxy-server=${proxy}`);
-  }
+  }*/
 
   let puppeteerOptions = {
     headless: PUPPETEER_HEADLESS === 'false',
     ignoreHTTPSErrors,
-    ...userPuppeteerOptions,
+    defaultViewport: undefined,
+    executablePath: undefined,
+    ...config.puppeteerOptions,
     args
   };
 
