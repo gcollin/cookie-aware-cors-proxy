@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const axios_1 = __importStar(require("axios"));
-const chrome_engine_1 = __importDefault(require("chrome-engine"));
+const chromeEngine_1 = require("./chrome-engine/chromeEngine");
 const PORT = process.env.CACP_PORT || 3000;
 const PROXY_PATH = process.env.CACP_PROXY_PATH || '/proxy';
 const REDIRECT_HOST = process.env.CACP_REDIRECT_HOST;
@@ -96,10 +96,11 @@ function toRequestConfig(config) {
     ret.method = config.method;
     ret.headers = config.headers;
     ret.body = config.data;
+    ret.followRedirect = false;
     return ret;
 }
 app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c;
     let debugMode = false;
     let logMode = false;
     let redirectUrl = REDIRECT_HOST;
@@ -172,6 +173,9 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
                 console.debug('Ignoring relative url path ' + path + ' for request', req);
             res.sendStatus(404).send();
             return;
+        }
+        else if (path == '') {
+            res.sendFile('./pages/index.html');
         }
         // Sometimes proxy mess up the url
         const protocolIndex = path.indexOf(':/');
@@ -246,7 +250,25 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
         if (req.query['engine'] != null) {
             if (req.query['engine'].toLowerCase() === 'chrome') {
                 const reqConfig = toRequestConfig(config);
-                response = yield (0, chrome_engine_1.default)(config.url, reqConfig);
+                const chromeResult = yield (0, chromeEngine_1.chromeEngine)(config.url, reqConfig);
+                if (chromeResult != null) {
+                    response = {
+                        status: chromeResult.status,
+                        statusText: chromeResult.statusText,
+                        data: chromeResult.data,
+                        headers: {},
+                        config: config
+                    };
+                }
+                else {
+                    response = {
+                        status: 500,
+                        statusText: "Error ",
+                        data: undefined,
+                        headers: {},
+                        config: config
+                    };
+                }
             }
             else {
                 res.status(400).statusMessage = 'Engine type ' + req.query['engine'] + ' is not supported';
@@ -267,6 +289,7 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
             return;
         }
         const responseStatus = (_a = response.status) !== null && _a !== void 0 ? _a : response.statusCode;
+        const responseBody = (_b = response.body) !== null && _b !== void 0 ? _b : response.data;
         if (debugMode)
             console.log(logId + "Received response: ", convertForLog(response));
         if (logMode)
@@ -314,7 +337,7 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
                 res.header(headerKey, response.headers[headerKey]);
         }
         res.status(responseStatus);
-        res.statusMessage = (_b = response.statusText) !== null && _b !== void 0 ? _b : response.statusMessage;
+        res.statusMessage = (_c = response.statusText) !== null && _c !== void 0 ? _c : response.statusMessage;
         // Handle the locations of the redirect
         if (responseStatus >= 300 && responseStatus < 400) {
             const rootLocation = response.headers['location'];
@@ -336,15 +359,21 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
             console.log(logId + "Sending response: ", convertForLog(res));
         if (logMode)
             console.log(logId + "Sending response: ", res.statusCode);
-        if (response.data != null) {
-            response.data.pipe(res).on('finish', () => {
-                next();
-            }).on('error', (err) => {
-                next(err);
-            });
+        if (responseBody != null) {
+            if (responseBody.pipe != null) {
+                // Is it s stream ?
+                responseBody.pipe(res).on('finish', () => {
+                    next();
+                }).on('error', (err) => {
+                    next(err);
+                });
+            }
+            else {
+                res.send(responseBody);
+            }
         }
         else {
-            res.send(response.body);
+            res.send();
         }
     }
     catch (error) {

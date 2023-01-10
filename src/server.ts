@@ -151,6 +151,8 @@ app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
                 console.debug('Ignoring relative url path '+path+' for request', req);
             res.sendStatus(404).send();
             return;
+        } else if (path == '') {
+            res.sendFile('./pages/index.html');
         }
 
         // Sometimes proxy mess up the url
