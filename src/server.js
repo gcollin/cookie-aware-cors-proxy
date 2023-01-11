@@ -167,15 +167,16 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
         // Find the url of the server to call
         if (path.startsWith('/'))
             path = path.substring(1);
-        if (!path.startsWith('http')) {
+        if (path == '') {
+            res.sendFile('./pages/index.html', { root: __dirname });
+            return;
+        }
+        else if (!path.startsWith('http')) {
             console.warn("Ignoring relative url path " + path);
             if (debugMode)
                 console.debug('Ignoring relative url path ' + path + ' for request', req);
             res.sendStatus(404).send();
             return;
-        }
-        else if (path == '') {
-            res.sendFile('./pages/index.html');
         }
         // Sometimes proxy mess up the url
         const protocolIndex = path.indexOf(':/');
