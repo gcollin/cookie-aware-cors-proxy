@@ -39,10 +39,11 @@ const express_1 = __importDefault(require("express"));
 const axios_1 = __importStar(require("axios"));
 const chromeEngine_1 = require("./chrome-engine/chromeEngine");
 const PORT = process.env.CACP_PORT || 3000;
-const PROXY_PATH = process.env.CACP_PROXY_PATH || '/proxy';
+const REDIRECT_PATH = process.env.CACP_REDIRECT_PATH || '/proxy';
 const REDIRECT_HOST = process.env.CACP_REDIRECT_HOST;
 const DEBUG_MODE = process.env.CACP_DEBUG === 'TRUE';
 const LOG_MODE = process.env.CACP_LOG === 'TRUE';
+const NGINX_PATH = process.env.CACP_NGINX_PATH || '/proxy';
 const app = (0, express_1.default)();
 app.use(express_1.default.json()); // for parsing application/json
 app.use(express_1.default.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
@@ -99,7 +100,7 @@ function toRequestConfig(config) {
     ret.followRedirect = false;
     return ret;
 }
-app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+app.all(NGINX_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     let debugMode = false;
     let logMode = false;
@@ -107,7 +108,7 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
     if (redirectUrl == null) {
         redirectUrl = req.protocol + '://' + req.get('host');
     }
-    redirectUrl = redirectUrl + PROXY_PATH;
+    redirectUrl = redirectUrl + REDIRECT_PATH;
     if (!redirectUrl.endsWith('/'))
         redirectUrl = redirectUrl + '/';
     // Makes log for the same request easy to find
@@ -122,8 +123,8 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
         let path = req.originalUrl;
         // Dynamically enable / disable log (=just url of calls are logged) or debug mode (full log)
         debugMode = DEBUG_MODE;
-        if (path.startsWith(PROXY_PATH))
-            path = path.substring(PROXY_PATH.length);
+        if (path.startsWith(NGINX_PATH))
+            path = path.substring(NGINX_PATH.length);
         // Support for debug mode just by appending /debug in the proxy url
         if (path.startsWith('/debug')) {
             path = path.substring('/debug'.length);
@@ -194,6 +195,7 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
             return true;
         };
         config.responseType = 'stream';
+        config.decompress = false;
         // We copy the headers from the client to the server
         // except for host that needs to be the server's host (and not the proxy's host)
         for (const headerKey in req.headers) {
@@ -452,5 +454,5 @@ function convertForLog(item) {
     return ret;
 }
 app.listen(PORT, () => {
-    console.log('Application started on port ' + PORT + ' under path "' + PROXY_PATH + '" with redirection host "' + (REDIRECT_HOST !== null && REDIRECT_HOST !== void 0 ? REDIRECT_HOST : 'not overriden.') + '"');
+    console.log('Application started on port ' + PORT + ' with redirection "' + (REDIRECT_HOST ? REDIRECT_HOST + REDIRECT_PATH : 'proxy') + '".');
 });
