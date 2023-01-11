@@ -69,7 +69,7 @@ function toRequestConfig(config: AxiosRequestConfig<any>): CoreOptions {
     return ret;
 }
 
-app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
+app.all('/proxy/**', async (req: Request, res: Response, next) => {
     let debugMode=false;
     let logMode=false;
     let redirectUrl = REDIRECT_HOST;
@@ -176,6 +176,7 @@ app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
         }
 
         config.responseType='stream';
+        config.decompress=false;
 
             // We copy the headers from the client to the server
             // except for host that needs to be the server's host (and not the proxy's host)
@@ -432,6 +433,6 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response | Re
 
 
 app.listen(PORT, () => {
-    console.log('Application started on port '+PORT+ ' under path "'+PROXY_PATH+'" with redirection host "'+(REDIRECT_HOST??'not overriden.')+'"');
+    console.log('Application started on port '+PORT+ ' with redirection "'+(REDIRECT_HOST?REDIRECT_HOST+PROXY_PATH:'proxy')+'".');
 });
 
