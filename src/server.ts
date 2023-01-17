@@ -5,10 +5,11 @@ import {CoreOptions, RequestResponse} from "request";
 import {chromeEngine} from './chrome-engine/chromeEngine';
 
 const PORT=process.env.CACP_PORT||3000;
-const PROXY_PATH=process.env.CACP_PROXY_PATH||'/proxy';
+const REDIRECT_PATH=process.env.CACP_REDIRECT_PATH||'/proxy';
 const REDIRECT_HOST=process.env.CACP_REDIRECT_HOST;
 const DEBUG_MODE=process.env.CACP_DEBUG==='TRUE';
 const LOG_MODE=process.env.CACP_LOG==='TRUE';
+const NGINX_PATH=process.env.CACP_NGINX_PATH||'/proxy';
 
 const app = express();
 app.use(express.json()) // for parsing application/json
@@ -69,7 +70,7 @@ function toRequestConfig(config: AxiosRequestConfig<any>): CoreOptions {
     return ret;
 }
 
-app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
+app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
     let debugMode=false;
     let logMode=false;
     let redirectUrl = REDIRECT_HOST;
@@ -77,7 +78,7 @@ app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
         redirectUrl=req.protocol+'://'+req.get('host');
     }
 
-    redirectUrl=redirectUrl+PROXY_PATH;
+    redirectUrl=redirectUrl+REDIRECT_PATH;
     if (!redirectUrl.endsWith('/'))
         redirectUrl=redirectUrl+'/';
 
@@ -96,8 +97,8 @@ app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
 
         // Dynamically enable / disable log (=just url of calls are logged) or debug mode (full log)
         debugMode=DEBUG_MODE;
-        if( path.startsWith(PROXY_PATH))
-            path = path.substring(PROXY_PATH.length);
+        if( path.startsWith(NGINX_PATH))
+            path = path.substring(NGINX_PATH.length);
             // Support for debug mode just by appending /debug in the proxy url
         if( path.startsWith('/debug')) {
             path = path.substring('/debug'.length);
@@ -145,7 +146,10 @@ app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
         // Find the url of the server to call
         if( path.startsWith('/'))
             path=path.substring(1);
-        if( !path.startsWith('http')) {
+        if (path == '') {
+            res.sendFile('./pages/index.html', {root:__dirname});
+            return;
+        } else if( !path.startsWith('http')) {
             console.warn("Ignoring relative url path "+path);
             if (debugMode)
                 console.debug('Ignoring relative url path '+path+' for request', req);
@@ -173,6 +177,7 @@ app.all(PROXY_PATH+'/**', async (req: Request, res: Response, next) => {
         }
 
         config.responseType='stream';
+        config.decompress=false;
 
             // We copy the headers from the client to the server
             // except for host that needs to be the server's host (and not the proxy's host)
@@ -419,6 +424,6 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response | Re
 
 
 app.listen(PORT, () => {
-    console.log('Application started on port '+PORT+ ' under path "'+PROXY_PATH+'" with redirection host "'+(REDIRECT_HOST??'not overriden.')+'"');
+    console.log('Application started on port '+PORT+ ' with redirection "'+(REDIRECT_HOST?REDIRECT_HOST+REDIRECT_PATH:'proxy')+'".');
 });
 

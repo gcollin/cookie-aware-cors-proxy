@@ -1,6 +1,6 @@
 {
   "name": "cookie-aware-cors-proxy",
-  "version": "1.0.12",
+  "version": "1.0.15",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -17,6 +17,7 @@
     "axios": "^1.1.3",
     "express": "^4.18.2",
     "hcaptcha-solver": "^1.0.2",
+    "puppeteer": "^19.5.0",
     "puppeteer-extra": "^3.3.4",
     "puppeteer-extra-plugin-stealth": "^2.11.1",
     "request": "^2.88.2",
@@ -26,8 +27,13 @@
   "bundleDependencies": [
     "axios",
     "express",
-    "ts-node",
-    "typescript"
+    "hcaptcha-solver",
+    "puppeteer",
+    "puppeteer-extra",
+    "puppeteer-extra-plugin-stealth",
+    "request",
+    "request-promise-native",
+    "stormwall-bypass"
   ],
   "devDependencies": {
     "@types/jest": "27.0.2",

@@ -37,12 +37,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const axios_1 = __importStar(require("axios"));
-const chrome_engine_1 = __importDefault(require("chrome-engine"));
+const chromeEngine_1 = require("./chrome-engine/chromeEngine");
 const PORT = process.env.CACP_PORT || 3000;
-const PROXY_PATH = process.env.CACP_PROXY_PATH || '/proxy';
+const REDIRECT_PATH = process.env.CACP_REDIRECT_PATH || '/proxy';
 const REDIRECT_HOST = process.env.CACP_REDIRECT_HOST;
 const DEBUG_MODE = process.env.CACP_DEBUG === 'TRUE';
 const LOG_MODE = process.env.CACP_LOG === 'TRUE';
+const NGINX_PATH = process.env.CACP_NGINX_PATH || '/proxy';
 const app = (0, express_1.default)();
 app.use(express_1.default.json()); // for parsing application/json
 app.use(express_1.default.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
@@ -96,17 +97,18 @@ function toRequestConfig(config) {
     ret.method = config.method;
     ret.headers = config.headers;
     ret.body = config.data;
+    ret.followRedirect = false;
     return ret;
 }
-app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+app.all(NGINX_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     let debugMode = false;
     let logMode = false;
     let redirectUrl = REDIRECT_HOST;
     if (redirectUrl == null) {
         redirectUrl = req.protocol + '://' + req.get('host');
     }
-    redirectUrl = redirectUrl + PROXY_PATH;
+    redirectUrl = redirectUrl + REDIRECT_PATH;
     if (!redirectUrl.endsWith('/'))
         redirectUrl = redirectUrl + '/';
     // Makes log for the same request easy to find
@@ -121,8 +123,8 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
         let path = req.originalUrl;
         // Dynamically enable / disable log (=just url of calls are logged) or debug mode (full log)
         debugMode = DEBUG_MODE;
-        if (path.startsWith(PROXY_PATH))
-            path = path.substring(PROXY_PATH.length);
+        if (path.startsWith(NGINX_PATH))
+            path = path.substring(NGINX_PATH.length);
         // Support for debug mode just by appending /debug in the proxy url
         if (path.startsWith('/debug')) {
             path = path.substring('/debug'.length);
@@ -166,7 +168,11 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
         // Find the url of the server to call
         if (path.startsWith('/'))
             path = path.substring(1);
-        if (!path.startsWith('http')) {
+        if (path == '') {
+            res.sendFile('./pages/index.html', { root: __dirname });
+            return;
+        }
+        else if (!path.startsWith('http')) {
             console.warn("Ignoring relative url path " + path);
             if (debugMode)
                 console.debug('Ignoring relative url path ' + path + ' for request', req);
@@ -189,6 +195,7 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
             return true;
         };
         config.responseType = 'stream';
+        config.decompress = false;
         // We copy the headers from the client to the server
         // except for host that needs to be the server's host (and not the proxy's host)
         for (const headerKey in req.headers) {
@@ -246,7 +253,25 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
         if (req.query['engine'] != null) {
             if (req.query['engine'].toLowerCase() === 'chrome') {
                 const reqConfig = toRequestConfig(config);
-                response = yield (0, chrome_engine_1.default)(config.url, reqConfig);
+                const chromeResult = yield (0, chromeEngine_1.chromeEngine)(config.url, reqConfig);
+                if (chromeResult != null) {
+                    response = {
+                        status: chromeResult.status,
+                        statusText: chromeResult.statusText,
+                        data: chromeResult.data,
+                        headers: {},
+                        config: config
+                    };
+                }
+                else {
+                    response = {
+                        status: 500,
+                        statusText: "Error ",
+                        data: undefined,
+                        headers: {},
+                        config: config
+                    };
+                }
             }
             else {
                 res.status(400).statusMessage = 'Engine type ' + req.query['engine'] + ' is not supported';
@@ -267,6 +292,7 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
             return;
         }
         const responseStatus = (_a = response.status) !== null && _a !== void 0 ? _a : response.statusCode;
+        const responseBody = (_b = response.body) !== null && _b !== void 0 ? _b : response.data;
         if (debugMode)
             console.log(logId + "Received response: ", convertForLog(response));
         if (logMode)
@@ -314,7 +340,7 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
                 res.header(headerKey, response.headers[headerKey]);
         }
         res.status(responseStatus);
-        res.statusMessage = (_b = response.statusText) !== null && _b !== void 0 ? _b : response.statusMessage;
+        res.statusMessage = (_c = response.statusText) !== null && _c !== void 0 ? _c : response.statusMessage;
         // Handle the locations of the redirect
         if (responseStatus >= 300 && responseStatus < 400) {
             const rootLocation = response.headers['location'];
@@ -336,15 +362,21 @@ app.all(PROXY_PATH + '/**', (req, res, next) => __awaiter(void 0, void 0, void 0
             console.log(logId + "Sending response: ", convertForLog(res));
         if (logMode)
             console.log(logId + "Sending response: ", res.statusCode);
-        if (response.data != null) {
-            response.data.pipe(res).on('finish', () => {
-                next();
-            }).on('error', (err) => {
-                next(err);
-            });
+        if (responseBody != null) {
+            if (responseBody.pipe != null) {
+                // Is it s stream ?
+                responseBody.pipe(res).on('finish', () => {
+                    next();
+                }).on('error', (err) => {
+                    next(err);
+                });
+            }
+            else {
+                res.send(responseBody);
+            }
         }
         else {
-            res.send(response.body);
+            res.send();
         }
     }
     catch (error) {
@@ -422,5 +454,5 @@ function convertForLog(item) {
     return ret;
 }
 app.listen(PORT, () => {
-    console.log('Application started on port ' + PORT + ' under path "' + PROXY_PATH + '" with redirection host "' + (REDIRECT_HOST !== null && REDIRECT_HOST !== void 0 ? REDIRECT_HOST : 'not overriden.') + '"');
+    console.log('Application started on port ' + PORT + ' with redirection "' + (REDIRECT_HOST ? REDIRECT_HOST + REDIRECT_PATH : 'proxy') + '".');
 });
