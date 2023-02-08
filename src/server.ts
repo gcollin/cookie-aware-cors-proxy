@@ -1,7 +1,6 @@
 import express, {Request, Response} from 'express';
 import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from "axios";
 import {Stream} from "stream";
-import {CoreOptions, RequestResponse} from "request";
 import {chromeEngine} from './chrome-engine/chromeEngine';
 
 const PORT=process.env.CACP_PORT||3000;
@@ -61,14 +60,14 @@ function modifyCookieField(cookieText: string, fieldKey: string, fieldValue?: st
     }
 }
 
-function toRequestConfig(config: AxiosRequestConfig<any>): CoreOptions {
+/*function toRequestConfig(config: AxiosRequestConfig<any>): CoreOptions {
     const ret:CoreOptions={};
     ret.method=config.method;
     ret.headers=config.headers;
     ret.body=config.data;
     ret.followRedirect=false;
     return ret;
-}
+}*/
 
 app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
     let debugMode=false;
@@ -237,15 +236,9 @@ app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
         if (req.query['engine']!=null) {
             if( (req.query['engine'] as string).toLowerCase()==='chrome') {
                 config.responseType='text';
-                const chromeResult = await chromeEngine.request(config);
+                const chromeResult = await chromeEngine.requestChrome(config);
                 if (chromeResult!=null) {
-                    response = {
-                        status:chromeResult.status,
-                        statusText: chromeResult.statusText,
-                        data:chromeResult.data,
-                        headers:{},
-                        config:config
-                    }
+                    response = chromeResult;
                 } else {
                     response={
                         status:500,
@@ -382,7 +375,7 @@ function handleUnexpectedError(res: Response, error: unknown,logId:string='') {
     res.status(500).send(error);
 }
 
-function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response | RequestResponse): any {
+function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): any {
     const ret:any={};
     if( item instanceof AxiosError) {
         const axiosError = item as AxiosError;

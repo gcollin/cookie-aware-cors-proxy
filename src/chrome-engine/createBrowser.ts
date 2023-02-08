@@ -1,9 +1,9 @@
-import {addExtra} from 'puppeteer-extra';
+import puppeteer from 'puppeteer-extra';
+import {Browser, PuppeteerLaunchOptions} from 'puppeteer';
 import {getUserAgent} from './utils';
-import {Browser} from "puppeteer";
 import {AxiosRequestConfig} from "axios";
 
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
 const {
   PUPPETEER_HEADLESS = 'true',
@@ -12,7 +12,7 @@ const {
   HTTPS_PROXY
 } = process.env;
 
-let chromium:any;
+/*let chromium:any;
 let puppeteerCore;
 try {
   puppeteerCore = require('puppeteer');
@@ -28,11 +28,9 @@ if (!puppeteerCore) {
       'Missing puppeteer dependency (yarn add puppeteer or yarn add puppeteer-core chrome-aws-lambda)'
     );
   }
-}
+}*/
 
-const puppeteer = addExtra(puppeteerCore);
-const stealth = StealthPlugin();
-puppeteer.use(stealth);
+puppeteer.use(StealthPlugin());
 
 export async function createBrowser(options: AxiosRequestConfig):Promise <Browser>{
   const config= {
@@ -55,16 +53,18 @@ export async function createBrowser(options: AxiosRequestConfig):Promise <Browse
     args.push(`--proxy-server=${proxy}`);
   }*/
 
-  let puppeteerOptions = {
+ // const execPath=puppeteer.executablePath();
+  let puppeteerOptions:PuppeteerLaunchOptions = {
     headless: PUPPETEER_HEADLESS === 'false',
     ignoreHTTPSErrors,
     defaultViewport: undefined,
-    executablePath: undefined,
+    channel: 'chrome',
+//    executablePath: execPath,
     ...config.puppeteerOptions,
     args
   };
 
-  if (chromium) {
+  /*if (chromium) {
     puppeteerOptions = {
       ...puppeteerOptions,
       args: chromium.args.concat(args),
@@ -72,7 +72,7 @@ export async function createBrowser(options: AxiosRequestConfig):Promise <Browse
       executablePath: await chromium.executablePath,
       headless: chromium.headless
     };
-  }
+  }*/
   puppeteerOptions.headless=true;
 
   return await puppeteer.launch(puppeteerOptions);

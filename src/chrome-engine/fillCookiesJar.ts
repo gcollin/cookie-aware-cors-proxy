@@ -1,9 +1,6 @@
-import {OptionsWithUrl, Request} from "request";
-
 import {createBrowser} from './createBrowser';
 import {Cookie, CookieJar} from 'tough-cookie';
 import {isCloudflareJSChallenge} from './utils';
-import {OptionsWithUri} from "request-promise-native";
 import {Url} from "url";
 import {AxiosRequestConfig, AxiosResponse} from "axios";
 import {Protocol} from "puppeteer";
@@ -34,17 +31,17 @@ function convertCookieToTough(cookie: Protocol.Network.Cookie): Cookie {
     });
 }
 
-function toCookieJar(jar: CookieJar, url: string,puppeteerCoookies: Protocol.Network.Cookie[]) {
+async function toCookieJar(jar: CookieJar, url: string,puppeteerCoookies: Protocol.Network.Cookie[]) {
     for (const cookie of puppeteerCoookies) {
-        jar.setCookie(convertCookieToTough(cookie),url);
+        await jar.setCookie(convertCookieToTough(cookie),url, {});
     }
 }
 
-export async function fillCookiesJar(request: Request, options:AxiosRequestConfig, jar:CookieJar):Promise<AxiosResponse> {
+export async function runThroughChrome(options:AxiosRequestConfig, jar:CookieJar):Promise<AxiosResponse> {
     //const jar = options.jar;
-    let url = (options as OptionsWithUrl).url || (options as OptionsWithUri).uri;
-    if (typeof url !== 'string') {
-        url = (url as Url).toString();
+    let url = options.url;
+    if( url == null) {
+        return Promise.reject("No url provided in the option.");
     }
     let browser;
 
@@ -73,19 +70,26 @@ export async function fillCookiesJar(request: Request, options:AxiosRequestConfi
 
         try {
             content = await page.content();
-            await page.select('#table-apps_length select', "5000");
-            await new Promise((resolve) => setTimeout(resolve, 10000));
-            content = await page.content();
-            toCookieJar(jar, page.url(), await page.cookies());
+            // await new Promise((resolve) => setTimeout(resolve, 10000));
+            // content = await page.content();
+            const newCookies=await page.cookies();
+            await toCookieJar(jar, page.url(), newCookies);
+            let cookieString="";
+            for (const newCookie of jar.getSetCookieStringsSync(page.url())) {
+                cookieString+=newCookie + ': ';
+            }
+
             return {
                 status:200,
                 statusText:"OK",
                 data:content,
-                headers:{},
+                headers:{
+                    "Cookie":cookieString
+                },
                 config:options
             };
         } catch (err:any) {
-            if( err.message==='No element found for selector: #table-apps_length select') {
+            /*if( err.message==='No element found for selector: #table-apps_length select') {
                 toCookieJar(jar, page.url(), await page.cookies());
                 return {
                     status:200,
@@ -94,10 +98,10 @@ export async function fillCookiesJar(request: Request, options:AxiosRequestConfi
                     headers:{},
                     config:options
                 };
-            } else {
+            } else {*/
                 console.log(err);
                 return convertError (err, options);
-            }
+            //}
         }
 
     } catch (err) {
