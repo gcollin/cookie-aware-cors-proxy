@@ -4,7 +4,7 @@ import {chromeEngine} from "../src/chrome-engine/chromeEngine";
 
 //jest.mock('axios');
 
-describe('basic test', () => {
+describe('Chrome tests', () => {
 
   //  const mockedAxios = jest.mocked(axios, true);
 

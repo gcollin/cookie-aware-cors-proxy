@@ -1,4 +1,4 @@
-import express, {Request, Response} from 'express';
+import express, {NextFunction, Request, Response} from 'express';
 import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from "axios";
 import {Stream} from "stream";
 import {chromeEngine} from './chrome-engine/chromeEngine';
@@ -10,11 +10,11 @@ const DEBUG_MODE=process.env.CACP_DEBUG==='TRUE';
 const LOG_MODE=process.env.CACP_LOG==='TRUE';
 const NGINX_PATH=process.env.CACP_NGINX_PATH||'/proxy';
 
-const app = express();
+export const app = express();
 app.use(express.json()) // for parsing application/json
 app.use(express.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
 
-function extractDomain(url: string): string {
+export function extractDomain(url: string): string {
 
     let domain= url.substring(url.indexOf('//')+2, url.indexOf('/', url.indexOf('//')+2));
     if (domain.indexOf(':')!=-1)
@@ -70,6 +70,10 @@ function modifyCookieField(cookieText: string, fieldKey: string, fieldValue?: st
 }*/
 
 app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
+    return handleProxyRequest(req, res, next);
+});
+
+export async function handleProxyRequest (req: Request, res: Response, next: NextFunction): Promise<void> {
     let debugMode=false;
     let logMode=false;
     let redirectUrl = REDIRECT_HOST;
@@ -359,7 +363,7 @@ app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
         }
     }
 
-});
+}
 
 function handleAxiosError(res: Response, error: AxiosError<any, any>, logId:string='') {
     console.error(logId+"Received Error", convertForLog(error));

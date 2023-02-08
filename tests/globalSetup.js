@@ -1,6 +1,10 @@
 const express = require('express');
+    // Starts the proxy server
+const testedServer = require('../src/server');
 
 module.exports = async () => {
+
+        // Starts a dummy server to use for testing
     let server;
     const app = express();
 
@@ -14,6 +18,7 @@ module.exports = async () => {
 
     let address = server.address()
     global.server = server;
+    global.testedServer = testedServer.app;
     process.env.SERVER_ADDRESS = `http://${address.address}:${address.port}`
     app.use(express.static('./tests/files'));
 };
