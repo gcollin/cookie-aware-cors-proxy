@@ -1,5 +1,5 @@
 import express, {NextFunction, Request, Response} from 'express';
-import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from "axios";
+import axios, {AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 import {Stream} from "stream";
 import {chromeEngine} from './chrome-engine/chromeEngine';
 
@@ -73,10 +73,33 @@ app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
     return handleProxyRequest(req, res, next);
 });
 
+function remapUrl(url: string|null, redirectUrl: string, path: string, targetUrlOrigin: string, pathFromUrl:boolean): string {
+    if (url!=null) {
+        let urlParam="";
+        if (url.startsWith('http')) {
+            // Absolute url
+            urlParam=url;
+        } else if( url.startsWith('/')){
+            // Url with root path
+            urlParam = targetUrlOrigin+url;
+        } else {
+            // Url with relative path
+            urlParam = path+(path.endsWith('/'))?"":"/"+url;
+        }
+        if (pathFromUrl==false) {
+            return redirectUrl+urlParam;
+        } else {
+            return redirectUrl+'?url='+encodeURIComponent(urlParam);
+        }
+    }
+    throw new Error ("Cannot remap a null url");
+}
+
 export async function handleProxyRequest (req: Request, res: Response, next: NextFunction): Promise<void> {
     let debugMode=false;
     let logMode=false;
     let redirectUrl = REDIRECT_HOST;
+    let pathFromUrl = false;
     if( redirectUrl==null) {
         redirectUrl=req.protocol+'://'+req.get('host');
     }
@@ -141,6 +164,7 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
             // Is the target path sent as a parameter ?
         if( req.query['url']!=null) {
             path = decodeURIComponent(req.query['url'] as string);
+            pathFromUrl=true;
             if (debugMode) {
                 console.log('Using path from url parameter: ', path);
             }
@@ -249,7 +273,7 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
                         statusText:"Error ",
                         data:undefined,
                         headers:{},
-                        config:config
+                        config:config as InternalAxiosRequestConfig
                     }
                 }
             } else {
@@ -323,17 +347,10 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
             // Handle the locations of the redirect
         if (responseStatus>=300 && responseStatus< 400) {
             const rootLocation=response.headers['location'];
-            if (rootLocation!=null) {
-                if (rootLocation.startsWith('http')) {
-                    res.header("location", redirectUrl+rootLocation);
-                } else if( rootLocation.startsWith('/')){
-                    res.header("location", redirectUrl+targetUrl.origin+rootLocation)
-                } else {
-                    res.header('location',redirectUrl+path+(path.endsWith('/'))?"":"/"+rootLocation);
-                }
-                if (debugMode)
-                    console.log (logId+"Replaced Redirect location "+rootLocation+" to "+res.getHeader('location'));
-            }
+            res.header("location",remapUrl (rootLocation, redirectUrl, path, targetUrl.origin, pathFromUrl));
+            if (debugMode)
+                console.log (logId+"Replaced Redirect location "+rootLocation+" to "+res.getHeader('location'));
+
         }
         if (debugMode)
             console.log(logId+"Sending response: ", convertForLog(res));

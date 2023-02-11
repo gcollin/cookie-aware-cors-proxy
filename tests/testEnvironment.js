@@ -1,7 +1,7 @@
-const TestEnvironment = require('jest-environment-jsdom'); // for browser js apps
-//const TestEnvironment = require('jest-environment-node'); // for server node apps
+//const TestEnvironment = require('jest-environment-jsdom'); // for browser js apps
+const NodeEnvironment = require('jest-environment-node').TestEnvironment; // for server node apps
 
-class ExpressEnvironment extends TestEnvironment {
+class ExpressEnvironment extends NodeEnvironment {
     constructor(config, context) {
         let cloneconfig = Object.assign({}, config)
         cloneconfig.testURL = process.env.SERVER_ADDRESS;
@@ -9,12 +9,12 @@ class ExpressEnvironment extends TestEnvironment {
     }
 
     async setup() {
-        this.global.jsdom = this.dom;
+        //this.global.jsdom = this.dom;
         await super.setup();
     }
 
     async teardown() {
-        this.global.jsdom = null;
+        //this.global.jsdom = null;
         await super.teardown();
     }
 

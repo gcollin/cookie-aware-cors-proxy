@@ -2,7 +2,7 @@ import {createBrowser} from './createBrowser';
 import {Cookie, CookieJar} from 'tough-cookie';
 import {isCloudflareJSChallenge} from './utils';
 import {Url} from "url";
-import {AxiosRequestConfig, AxiosResponse} from "axios";
+import {AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 import {Protocol} from "puppeteer";
 
 const DEFAULT_EXPIRATION_TIME_IN_SECONDS = 3000;
@@ -86,7 +86,7 @@ export async function runThroughChrome(options:AxiosRequestConfig, jar:CookieJar
                 headers:{
                     "Cookie":cookieString
                 },
-                config:options
+                config:options as InternalAxiosRequestConfig
             };
         } catch (err:any) {
             /*if( err.message==='No element found for selector: #table-apps_length select') {
@@ -126,7 +126,7 @@ function convertError (err:any, config:AxiosRequestConfig): AxiosResponse {
         statusText:errorMsg,
         data:undefined,
         headers:{},
-        config:config
+        config:config as InternalAxiosRequestConfig
     };
 
 }

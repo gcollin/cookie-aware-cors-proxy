@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse} from "axios";
+import axios, {AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 
 import {isProtectedByStormwall, getStormwallCookie} from 'stormwall-bypass';
 import { getUserAgent } from './utils';
@@ -62,7 +62,7 @@ async function cloudflareScraper(options:AxiosRequestConfig<string>): Promise<Ax
                 statusText:"Error "+err,
                 headers:{},
                 data:undefined,
-                config:options
+                config:options as InternalAxiosRequestConfig
             }
         }
     }

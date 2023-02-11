@@ -3,8 +3,8 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: "./tests/testEnvironment.js",
   globalSetup: "./tests/globalSetup.js",
-  globalTeardown: "./tests/globalTeardown.js",
-  moduleNameMapper : {
+  globalTeardown: "./tests/globalTeardown.js"
+  /*moduleNameMapper : {
     '^axios$': 'axios/dist/axios.js'
-  }
+  }*/
 };
