@@ -2,6 +2,7 @@ import express, {NextFunction, Request, Response} from 'express';
 import axios, {AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 import {Stream} from "stream";
 import {chromeEngine} from './chrome-engine/chromeEngine';
+import {Cookie} from "tough-cookie";
 
 const PORT=process.env.CACP_PORT||3000;
 const REDIRECT_PATH=process.env.CACP_REDIRECT_PATH||'/proxy';
@@ -93,6 +94,20 @@ function remapUrl(url: string|null, redirectUrl: string, path: string, targetUrl
         }
     }
     throw new Error ("Cannot remap a null url");
+}
+
+function transformCookie(originalText: string) :string {
+
+    const cookie = Cookie.parse(originalText);
+    if (cookie==null) {
+        return originalText;    // If the cookie cannot be parsed, just send it
+    }
+
+    cookie.domain=null;     // Remove all the domain stuff
+    cookie.sameSite='None'; // Ensure the browser will send the cookie all the time
+    cookie.secure=false;   // Force non secure cookies
+    cookie.path='/';    // Remove the path argument
+    return cookie.cookieString();
 }
 
 export async function handleProxyRequest (req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -262,9 +277,10 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
         let response:AxiosResponse|null=null;
 
         if (req.query['engine']!=null) {
-            if( (req.query['engine'] as string).toLowerCase()==='chrome') {
+            const engine=(req.query['engine'] as string).toLowerCase();
+            if( engine==='chrome' || engine==='cloudflare') {
                 config.responseType='text';
-                const chromeResult = await chromeEngine.requestChrome(config);
+                const chromeResult = await chromeEngine.request(engine, config);
                 if (chromeResult!=null) {
                     response = chromeResult;
                 } else {
@@ -307,32 +323,7 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
                 // Change some values of the cookies to make it work with the browser across the proxy
                 for (let cookieText of response.headers[headerKey]!) {
                     const originalText=cookieText;
-                    let domainKey = null;
-                    let sameSiteKey = null;
-                    let secureKey= null;
-                    const fields = cookieText.split(';');
-                    let ignoreFirst=true;
-                    for (let field of fields) {
-                        if( ignoreFirst) {
-                            ignoreFirst=false;
-                            continue;
-                        }
-                        field = field.trim();
-                        if( field.toLowerCase().startsWith('domain')) {
-                            domainKey=field.substring(0, 'domain'.length);
-                        } else if (field.toLowerCase().startsWith('samesite')) {
-                            sameSiteKey=field.substring(0, 'samesite'.length);
-                        } else if (field.toLowerCase().startsWith('secure')) {
-                            secureKey=field.substring(0, 'secure'.length);
-                        }
-                    }
-
-                    if (domainKey!=null) {
-                        cookieText=modifyCookieField (cookieText, domainKey);
-//                        const newDomain=extractDomain (redirectUrl);
-                    }
-                    cookieText= modifyCookieField(cookieText, sameSiteKey??'SameSite', 'None' );
-                    cookieText= modifyCookieField(cookieText, secureKey??'Secure', '' );
+                    cookieText = transformCookie (originalText);
                     if (debugMode)
                         console.log (logId+"Replaced cookie "+originalText+" to "+cookieText);
                     newCookies.push(cookieText);

@@ -3,6 +3,7 @@ const express = require('express');
 const testedServer = require('../src/server');
 const {Request, Response} = require("express");
 const {app, handleProxyRequest} = require("../src/server");
+const {Cookie} = require("tough-cookie");
 
 
 module.exports = async () => {
@@ -25,11 +26,29 @@ module.exports = async () => {
     process.env.SERVER_ADDRESS = `http://${address.address}:${address.port}`
     //app.use(express.static('./tests/files'));
     app.all('/**', async (req, res, next) => {
-        if( req.path.indexOf('redirect') != -1) {
-            res.redirect(process.env.SERVER_ADDRESS+'/index.html');
-        }else {
-            res.sendFile(process.cwd()+'/tests/files'+req.path);
+        let path=req.path;
+        if( path.startsWith('/redirect')) {
+            res.redirect(process.env.SERVER_ADDRESS+path.substring('/redirect'.length));
+            return;
+        }else if( path.startsWith('/cookie')) {
+            res.cookie("domain-cookie", "value-of-domain-cookie",{
+                domain:'localdomain',
+                sameSite: 'Lax'
+            });
+            res.cookie("subdomain-cookie", "value-of-subdomain-cookie", {
+                domain:'local.localdomain',
+                sameSite: 'Strict'
+            });
+            res.cookie("path-cookie","value-of-path-cookie", {
+                domain:'localdomain',
+                sameSite: 'Lax',
+                path: '/cookie/path'
+            });
+            path=path.substring('/cookie'.length);
         }
+
+        res.sendFile(process.cwd()+'/tests/files'+path);
+
     });
 
 

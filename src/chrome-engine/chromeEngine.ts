@@ -74,6 +74,14 @@ async function chromeScraper(options:AxiosRequestConfig<string>): Promise<AxiosR
 }
 
 export const chromeEngine= {
+
+    request<T = any>(engine:string, config: AxiosRequestConfig<string>): Promise<AxiosResponse<T>> {
+        if (engine==='cloudflare')
+            return this.requestCloudFlare(config);
+        else
+            return this.requestChrome(config);
+    },
+
     requestCloudFlare<T = any>(config: AxiosRequestConfig<string>): Promise<AxiosResponse<T>> {
         if( config.headers==null) {
             config.headers={ 'User-Agent': getUserAgent() };
@@ -85,11 +93,6 @@ export const chromeEngine= {
     },
 
     requestChrome<T = any>(config: AxiosRequestConfig<string>): Promise<AxiosResponse<T>> {
-        if( config.headers==null) {
-            config.headers={ 'User-Agent': getUserAgent() };
-        }else {
-            config.headers["User-Agent"]=getUserAgent();
-        }
         config.decompress=false;
         return chromeScraper(config);
     }

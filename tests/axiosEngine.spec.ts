@@ -9,7 +9,7 @@ describe('Overall Axios tests', () => {
     it("should support simple requests",  (done) => {
 
         axios.request({
-            url:'http://localhost:3000/proxy/'+process.env.SERVER_ADDRESS + '/index.html',
+            url: TEST_SERVER_URL+'/'+process.env.SERVER_ADDRESS + '/index.html',
             method:'get'
         }).then( response => {
             expect(response.status).toBe(200);
@@ -24,7 +24,7 @@ describe('Overall Axios tests', () => {
 
             // Test with / notation for url
         let response = await axios.request({
-            url:TEST_SERVER_URL+'/'+process.env.SERVER_ADDRESS + '/redirect',
+            url:TEST_SERVER_URL+'/'+process.env.SERVER_ADDRESS + '/redirect/index.html',
             method:'get',
             maxRedirects:0,
             validateStatus: function (status) {
@@ -38,7 +38,7 @@ describe('Overall Axios tests', () => {
         response = await axios.request({
             url:TEST_SERVER_URL+'/',
             params: {
-                url:process.env.SERVER_ADDRESS + '/redirect'
+                url:process.env.SERVER_ADDRESS + '/redirect/index.html'
             },
             method:'get',
             maxRedirects:0,
@@ -58,6 +58,19 @@ describe('Overall Axios tests', () => {
         expect(response.status).toBe(200);
         expect(response.data).toContain("Test Title");
 
+
+    });
+
+    it("should support cookie",  async () => {
+
+        // Test with / notation for url
+        let response = await axios.request({
+            url:TEST_SERVER_URL+'/'+process.env.SERVER_ADDRESS + '/cookie/index.html',
+            method:'get'
+        });
+        expect(response.status).toBe(200);
+        expect(response.data).toContain("Test Title");
+        expect(response.headers["set-cookie"]).toHaveLength(3);
 
     });
 
