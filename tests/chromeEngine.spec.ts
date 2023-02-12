@@ -64,12 +64,29 @@ describe('Chrome tests', () => {
         expect(response.data).toContain("Test Title");
     });
 
-    it("supports cookies value", async () => {
+    it("supports redirect with url notation", async () => {
         // Test redirect with parameters for url
         let response = await axios.request({
             url:TEST_SERVER_URL+'/',
             params: {
                 url:process.env.SERVER_ADDRESS + '/redirect/index.html',
+                engine:'chrome'
+            },
+            method:'get',
+            maxRedirects:0
+        });
+        // Redirects are directly handled by Chrome
+        expect(response.status).toBe(200);
+        expect(response.data).toContain("Test Title");
+
+    });
+
+    it("supports cookies value", async () => {
+        // Test redirect with parameters for url
+        let response = await axios.request({
+            url:TEST_SERVER_URL+'/',
+            params: {
+                url:process.env.SERVER_ADDRESS + '/cookie/index.html',
                 engine:'chrome'
             },
             method:'get',

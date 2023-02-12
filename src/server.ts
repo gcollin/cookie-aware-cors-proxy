@@ -279,7 +279,6 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
         if (req.query['engine']!=null) {
             const engine=(req.query['engine'] as string).toLowerCase();
             if( engine==='chrome' || engine==='cloudflare') {
-                config.responseType='text';
                 const chromeResult = await chromeEngine.request(engine, config);
                 if (chromeResult!=null) {
                     response = chromeResult;

@@ -79,15 +79,19 @@ export async function runThroughChrome(options:AxiosRequestConfig, jar:CookieJar
                 cookieString+=newCookie + ': ';
             }
 
-            return {
+            const ret: {status:number, statusText:string, data:any, config:any, headers:any}= {
                 status:200,
                 statusText:"OK",
                 data:content,
-                headers:{
-                    "Cookie":cookieString
-                },
-                config:options as InternalAxiosRequestConfig
+                config:options as InternalAxiosRequestConfig,
+                headers:undefined
             };
+            if (cookieString.length > 0) {
+                ret.headers={
+                    'Set-Cookie':cookieString
+                }
+            }
+            return ret;
         } catch (err:any) {
             /*if( err.message==='No element found for selector: #table-apps_length select') {
                 toCookieJar(jar, page.url(), await page.cookies());

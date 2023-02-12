@@ -88,11 +88,13 @@ export const chromeEngine= {
         }else {
             config.headers["User-Agent"]=getUserAgent();
         }
+        config.responseType='text';
         config.decompress=false;
         return cloudflareScraper(config);
     },
 
     requestChrome<T = any>(config: AxiosRequestConfig<string>): Promise<AxiosResponse<T>> {
+        config.responseType='text';
         config.decompress=false;
         return chromeScraper(config);
     }

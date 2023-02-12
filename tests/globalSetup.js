@@ -32,15 +32,15 @@ module.exports = async () => {
             return;
         }else if( path.startsWith('/cookie')) {
             res.cookie("domain-cookie", "value-of-domain-cookie",{
-                domain:'localdomain',
+                domain:req.hostname,
                 sameSite: 'Lax'
             });
             res.cookie("subdomain-cookie", "value-of-subdomain-cookie", {
-                domain:'local.localdomain',
+                domain:'sub.'+req.hostname,
                 sameSite: 'Strict'
             });
             res.cookie("path-cookie","value-of-path-cookie", {
-                domain:'localdomain',
+                domain:req.hostname,
                 sameSite: 'Lax',
                 path: '/cookie/path'
             });
