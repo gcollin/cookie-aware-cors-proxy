@@ -10,6 +10,7 @@ class ExpressEnvironment extends NodeEnvironment {
 
     async setup() {
         //this.global.jsdom = this.dom;
+
         await super.setup();
     }
 

@@ -1,4 +1,3 @@
-import { getMockReq, getMockRes } from '@jest-mock/express';
 import axios from "axios";
 
 describe('Overall Axios tests', () => {
@@ -7,7 +6,6 @@ describe('Overall Axios tests', () => {
     const TEST_SERVER_URL='http://localhost:3000/proxy';
 
     it("should support simple requests",  (done) => {
-
         axios.request({
             url: TEST_SERVER_URL+'/'+process.env.SERVER_ADDRESS + '/index.html',
             method:'get'

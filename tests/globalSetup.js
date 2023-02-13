@@ -13,18 +13,18 @@ module.exports = async () => {
     const app = express();
 
     await new Promise(function(resolve) {
-        server = app.listen(0, "127.0.0.1", function() {
+        server = app.listen(0, "localhost.localdomain", function() {
             let address = server.address();
             console.log(` Running express on '${JSON.stringify(address)}'...`);
             resolve();
         });
     });
 
-    let address = server.address()
+    let address = 'localhost.localdomain';
     global.server = server;
     global.testedServer = testedServer.app;
-    process.env.SERVER_ADDRESS = `http://${address.address}:${address.port}`
-    //app.use(express.static('./tests/files'));
+    process.env.SERVER_ADDRESS = 'http://'+address+':'+server.address().port;
+
     app.all('/**', async (req, res, next) => {
         let path=req.path;
         if( path.startsWith('/redirect')) {
@@ -35,8 +35,8 @@ module.exports = async () => {
                 domain:req.hostname,
                 sameSite: 'Lax'
             });
-            res.cookie("subdomain-cookie", "value-of-subdomain-cookie", {
-                domain:'sub.'+req.hostname,
+            res.cookie("strict-cookie", "value-of-subdomain-cookie", {
+                domain:req.hostname,
                 sameSite: 'Strict'
             });
             res.cookie("path-cookie","value-of-path-cookie", {

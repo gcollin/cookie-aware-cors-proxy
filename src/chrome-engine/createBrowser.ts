@@ -32,7 +32,7 @@ if (!puppeteerCore) {
 
 puppeteer.use(StealthPlugin());
 
-export async function createBrowser(options: AxiosRequestConfig):Promise <Browser>{
+export async function createBrowser(options: AxiosRequestConfig, userAgent?:string):Promise <Browser>{
   const config= {
     proxy: HTTP_PROXY || HTTPS_PROXY,
     browserWSEndpoint: undefined,
@@ -45,7 +45,10 @@ export async function createBrowser(options: AxiosRequestConfig):Promise <Browse
     return puppeteer.connect({ browserWSEndpoint:config.browserWSEndpoint, browserURL:config.browserUrl, ignoreHTTPSErrors });
   }
 
-  let args = ['--no-sandbox', '--disable-setuid-sandbox', '--user-agent=' + getUserAgent()];
+  let args = ['--no-sandbox', '--disable-setuid-sandbox']
+  if (userAgent!=null) {
+    args.push('--user-agent=' + userAgent);
+  }
   if(config.puppeteerOptions.args) {
     args = args.concat(config.puppeteerOptions.args)
   }

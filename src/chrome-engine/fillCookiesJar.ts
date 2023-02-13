@@ -1,7 +1,6 @@
 import {createBrowser} from './createBrowser';
-import {Cookie, CookieJar} from 'tough-cookie';
+import {Cookie} from 'tough-cookie';
 import {isCloudflareJSChallenge} from './utils';
-import {Url} from "url";
 import {AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 import {Protocol} from "puppeteer";
 
@@ -31,13 +30,25 @@ function convertCookieToTough(cookie: Protocol.Network.Cookie): Cookie {
     });
 }
 
-async function toCookieJar(jar: CookieJar, url: string,puppeteerCoookies: Protocol.Network.Cookie[]) {
-    for (const cookie of puppeteerCoookies) {
-        await jar.setCookie(convertCookieToTough(cookie),url, {});
-    }
+function cookieAsString(foundCookie: Protocol.Network.Cookie) {
+
+    const ret = new Cookie({
+        key:foundCookie.name,
+        value:foundCookie.value,
+        path:foundCookie.path,
+        secure:foundCookie.secure,
+        sameSite:foundCookie.sameSite,
+        httpOnly:foundCookie.httpOnly,
+        domain:foundCookie.domain
+    });
+    if ((foundCookie.expires!=null) && (foundCookie.expires!=-1))
+        ret.expires=new Date (foundCookie.expires);
+    else
+        ret.expires="Infinity";
+    return ret.cookieString();
 }
 
-export async function runThroughChrome(options:AxiosRequestConfig, jar:CookieJar):Promise<AxiosResponse> {
+export async function runThroughChrome(options:AxiosRequestConfig, userAgent?:string):Promise<AxiosResponse> {
     //const jar = options.jar;
     let url = options.url;
     if( url == null) {
@@ -46,7 +57,7 @@ export async function runThroughChrome(options:AxiosRequestConfig, jar:CookieJar
     let browser;
 
     try {
-        browser = await createBrowser(options);
+        browser = await createBrowser(options, userAgent);
         const page = await browser.newPage();
         let response = await page.goto(url, {
             timeout: 45000,
@@ -69,14 +80,21 @@ export async function runThroughChrome(options:AxiosRequestConfig, jar:CookieJar
         }
 
         try {
-            content = await page.content();
+//            content = await page.content();
             // await new Promise((resolve) => setTimeout(resolve, 10000));
             // content = await page.content();
-            const newCookies=await page.cookies();
-            await toCookieJar(jar, page.url(), newCookies);
-            let cookieString="";
-            for (const newCookie of jar.getSetCookieStringsSync(page.url())) {
-                cookieString+=newCookie + ': ';
+                // Retrieve all the cookies, not just the ones accessible through javascript
+            let newCookies: Protocol.Network.Cookie[] = [];
+            const client = await page.target().createCDPSession();
+            try {
+                newCookies = (await client.send('Network.getAllCookies')).cookies;
+            }finally {
+                await client.detach();
+            }
+
+            const cookiesString=[];
+            for (const foundCookie of newCookies) {
+                cookiesString.push(cookieAsString (foundCookie));
             }
 
             const ret: {status:number, statusText:string, data:any, config:any, headers:any}= {
@@ -86,9 +104,9 @@ export async function runThroughChrome(options:AxiosRequestConfig, jar:CookieJar
                 config:options as InternalAxiosRequestConfig,
                 headers:undefined
             };
-            if (cookieString.length > 0) {
+            if (cookiesString.length > 0) {
                 ret.headers={
-                    'Set-Cookie':cookieString
+                    'Set-Cookie':cookiesString
                 }
             }
             return ret;

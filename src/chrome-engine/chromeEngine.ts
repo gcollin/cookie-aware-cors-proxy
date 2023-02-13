@@ -17,7 +17,7 @@ function isCloudflareIUAMError(error: AxiosError<string>) {
 async function handleError(error:AxiosError<string>, jar:CookieJar):Promise<AxiosResponse> {
   if (isCloudflareIUAMError(error)) {
     if (error.config!=null) {
-        let response = await runThroughChrome( error.config, jar);
+        let response = await runThroughChrome( error.config, getUserAgent());
         return response;
     }
   }
@@ -29,8 +29,10 @@ async function handleResponse(response:AxiosResponse<string>, options:  AxiosReq
   const body = response.data;
   if (isProtectedByStormwall(body) && (targetUrl!=null)) {
     const cookie = getStormwallCookie(body);
-    jar.setCookie(cookie, targetUrl);
-    addCookieToAxiosRequest (cookie as string, options);
+    jar.setCookieSync(cookie, targetUrl);
+    if (options.headers==null)  options.headers={};
+    options.headers.Cookie=jar.getCookieStringSync(targetUrl);
+    //addCookieToAxiosRequest (cookie as string, options);
     response = await axios.request(options);
   }
   return response;
@@ -70,7 +72,7 @@ async function cloudflareScraper(options:AxiosRequestConfig<string>): Promise<Ax
 
 async function chromeScraper(options:AxiosRequestConfig<string>): Promise<AxiosResponse<any>> {
     const jar= new CookieJar();
-    return runThroughChrome(options, jar);
+    return runThroughChrome(options);
 }
 
 export const chromeEngine= {
