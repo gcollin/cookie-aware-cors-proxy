@@ -45,11 +45,13 @@ jobs:
       - name: Version Patch
         if: ${{ success() && ( inputs.version == '') && ( inputs.next == true) }}
         run: |
-          npm version patch
+          PACKAGE_VERSION = $(npm version patch)
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
       - name: Version Minor
         if: ${{ success() && ( inputs.version == '') && ( inputs.next == false) }}
         run: |
-          npm version minor
+          PACKAGE_VERSION = $(npm version minor)
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
       - name: Version
         if: ${{ success() && ( inputs.version != '') }}
         run: |
@@ -83,3 +85,17 @@ jobs:
           npm pack
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create checksum
+        uses: jmgilman/actions-generate-checksum@v1
+        with:
+          patterns: |
+            cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz
+      - name: Create release
+        if: ${{ success() && inputs.branch == 'main'}}
+        uses: softprops/action-gh-release@master
+        with:
+          name: v${{PACKAGE_VERSION}}
+          tag_name: v${{PACKAGE_VERSION}}
+          files: |
+            checksum.txt
+            cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz
