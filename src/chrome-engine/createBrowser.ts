@@ -1,8 +1,9 @@
-import {addExtra} from 'puppeteer-extra';
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+import puppeteer from 'puppeteer-extra';
+import {Browser, PuppeteerLaunchOptions} from 'puppeteer';
 import {getUserAgent} from './utils';
-import {Browser} from "puppeteer";
-import {Options} from "request-promise-native";
+import {AxiosRequestConfig} from "axios";
+
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
 const {
   PUPPETEER_HEADLESS = 'true',
@@ -11,7 +12,7 @@ const {
   HTTPS_PROXY
 } = process.env;
 
-let chromium:any;
+/*let chromium:any;
 let puppeteerCore;
 try {
   puppeteerCore = require('puppeteer');
@@ -27,41 +28,46 @@ if (!puppeteerCore) {
       'Missing puppeteer dependency (yarn add puppeteer or yarn add puppeteer-core chrome-aws-lambda)'
     );
   }
-}
+}*/
 
-const puppeteer = addExtra(puppeteerCore);
-const stealth = StealthPlugin();
-puppeteer.use(stealth);
+puppeteer.use(StealthPlugin());
 
-export async function createBrowser(options: any):Promise <Browser>{
-  const {
-    proxy = HTTP_PROXY || HTTPS_PROXY,
-    browserWSEndpoint,
-    browserUrl,
-    puppeteerOptions: userPuppeteerOptions = {}
-  } = options;
+export async function createBrowser(options: AxiosRequestConfig, userAgent?:string):Promise <Browser>{
+  const config= {
+    proxy: HTTP_PROXY || HTTPS_PROXY,
+    browserWSEndpoint: undefined,
+    browserUrl:undefined,
+    puppeteerOptions: {args:undefined}
+  };
   const ignoreHTTPSErrors = PUPPETEER_IGNORE_HTTPS_ERROR === 'true';
 
-  if (browserWSEndpoint || browserUrl) {
-    return puppeteer.connect({ browserWSEndpoint, browserURL:browserUrl, ignoreHTTPSErrors });
+  if (config.browserWSEndpoint || config.browserUrl) {
+    return puppeteer.connect({ browserWSEndpoint:config.browserWSEndpoint, browserURL:config.browserUrl, ignoreHTTPSErrors });
   }
 
-  let args = ['--no-sandbox', '--disable-setuid-sandbox', '--user-agent=' + getUserAgent()];
-  if(userPuppeteerOptions.args) {
-    args = args.concat(userPuppeteerOptions.args)
+  let args = ['--no-sandbox', '--disable-setuid-sandbox']
+  if (userAgent!=null) {
+    args.push('--user-agent=' + userAgent);
   }
-  if (proxy) {
+  if(config.puppeteerOptions.args) {
+    args = args.concat(config.puppeteerOptions.args)
+  }
+/*  if (proxy) {
     args.push(`--proxy-server=${proxy}`);
-  }
+  }*/
 
-  let puppeteerOptions = {
+ // const execPath=puppeteer.executablePath();
+  let puppeteerOptions:PuppeteerLaunchOptions = {
     headless: PUPPETEER_HEADLESS === 'false',
     ignoreHTTPSErrors,
-    ...userPuppeteerOptions,
+    defaultViewport: undefined,
+    channel: 'chrome',
+//    executablePath: execPath,
+    ...config.puppeteerOptions,
     args
   };
 
-  if (chromium) {
+  /*if (chromium) {
     puppeteerOptions = {
       ...puppeteerOptions,
       args: chromium.args.concat(args),
@@ -69,7 +75,7 @@ export async function createBrowser(options: any):Promise <Browser>{
       executablePath: await chromium.executablePath,
       headless: chromium.headless
     };
-  }
+  }*/
   puppeteerOptions.headless=true;
 
   return await puppeteer.launch(puppeteerOptions);

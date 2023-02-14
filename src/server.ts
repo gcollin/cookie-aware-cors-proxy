@@ -1,8 +1,8 @@
-import express, {Request, Response} from 'express';
-import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from "axios";
+import express, {NextFunction, Request, Response} from 'express';
+import axios, {AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 import {Stream} from "stream";
-import {CoreOptions, RequestResponse} from "request";
 import {chromeEngine} from './chrome-engine/chromeEngine';
+import {Cookie} from "tough-cookie";
 
 const PORT=process.env.CACP_PORT||3000;
 const REDIRECT_PATH=process.env.CACP_REDIRECT_PATH||'/proxy';
@@ -11,11 +11,11 @@ const DEBUG_MODE=process.env.CACP_DEBUG==='TRUE';
 const LOG_MODE=process.env.CACP_LOG==='TRUE';
 const NGINX_PATH=process.env.CACP_NGINX_PATH||'/proxy';
 
-const app = express();
+export const app = express();
 app.use(express.json()) // for parsing application/json
 app.use(express.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
 
-function extractDomain(url: string): string {
+export function extractDomain(url: string): string {
 
     let domain= url.substring(url.indexOf('//')+2, url.indexOf('/', url.indexOf('//')+2));
     if (domain.indexOf(':')!=-1)
@@ -61,19 +61,60 @@ function modifyCookieField(cookieText: string, fieldKey: string, fieldValue?: st
     }
 }
 
-function toRequestConfig(config: AxiosRequestConfig<any>): CoreOptions {
+/*function toRequestConfig(config: AxiosRequestConfig<any>): CoreOptions {
     const ret:CoreOptions={};
     ret.method=config.method;
     ret.headers=config.headers;
     ret.body=config.data;
     ret.followRedirect=false;
     return ret;
-}
+}*/
 
 app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
+    return handleProxyRequest(req, res, next);
+});
+
+function remapUrl(url: string|null, redirectUrl: string, path: string, targetUrlOrigin: string, pathFromUrl:boolean): string {
+    if (url!=null) {
+        let urlParam="";
+        if (url.startsWith('http')) {
+            // Absolute url
+            urlParam=url;
+        } else if( url.startsWith('/')){
+            // Url with root path
+            urlParam = targetUrlOrigin+url;
+        } else {
+            // Url with relative path
+            urlParam = path+(path.endsWith('/'))?"":"/"+url;
+        }
+        if (pathFromUrl==false) {
+            return redirectUrl+urlParam;
+        } else {
+            return redirectUrl+'?url='+encodeURIComponent(urlParam);
+        }
+    }
+    throw new Error ("Cannot remap a null url");
+}
+
+function transformCookie(originalText: string) :string {
+
+    const cookie = Cookie.parse(originalText);
+    if (cookie==null) {
+        return originalText;    // If the cookie cannot be parsed, just send it
+    }
+
+    cookie.domain=null;     // Remove all the domain stuff
+    cookie.sameSite='None'; // Ensure the browser will send the cookie all the time
+    cookie.secure=false;   // Force non secure cookies
+    cookie.path='/';    // Remove the path argument
+    return cookie.cookieString();
+}
+
+export async function handleProxyRequest (req: Request, res: Response, next: NextFunction): Promise<void> {
     let debugMode=false;
     let logMode=false;
     let redirectUrl = REDIRECT_HOST;
+    let pathFromUrl = false;
     if( redirectUrl==null) {
         redirectUrl=req.protocol+'://'+req.get('host');
     }
@@ -138,6 +179,7 @@ app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
             // Is the target path sent as a parameter ?
         if( req.query['url']!=null) {
             path = decodeURIComponent(req.query['url'] as string);
+            pathFromUrl=true;
             if (debugMode) {
                 console.log('Using path from url parameter: ', path);
             }
@@ -232,27 +274,21 @@ app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
         if( logMode)
             console.log(logId+"Sending request: "+config.method+':'+config.url);
 
-        let response:AxiosResponse|RequestResponse|null=null;
+        let response:AxiosResponse|null=null;
 
         if (req.query['engine']!=null) {
-            if( (req.query['engine'] as string).toLowerCase()==='chrome') {
-                const reqConfig = toRequestConfig (config);
-                const chromeResult = await chromeEngine(config.url, reqConfig);
+            const engine=(req.query['engine'] as string).toLowerCase();
+            if( engine==='chrome' || engine==='cloudflare') {
+                const chromeResult = await chromeEngine.request(engine, config);
                 if (chromeResult!=null) {
-                    response = {
-                        status:chromeResult.status,
-                        statusText: chromeResult.statusText,
-                        data:chromeResult.data,
-                        headers:{},
-                        config:config
-                    }
+                    response = chromeResult;
                 } else {
                     response={
                         status:500,
                         statusText:"Error ",
                         data:undefined,
                         headers:{},
-                        config:config
+                        config:config as InternalAxiosRequestConfig
                     }
                 }
             } else {
@@ -274,8 +310,8 @@ app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
             return;
         }
 
-        const responseStatus = (response as any).status??(response as any).statusCode;
-        const responseBody= (response as any).body??(response as any).data;
+        const responseStatus = response.status;
+        const responseBody= response.data;
         if( debugMode)
             console.log(logId+"Received response: ", convertForLog(response));
         if( logMode)
@@ -286,32 +322,7 @@ app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
                 // Change some values of the cookies to make it work with the browser across the proxy
                 for (let cookieText of response.headers[headerKey]!) {
                     const originalText=cookieText;
-                    let domainKey = null;
-                    let sameSiteKey = null;
-                    let secureKey= null;
-                    const fields = cookieText.split(';');
-                    let ignoreFirst=true;
-                    for (let field of fields) {
-                        if( ignoreFirst) {
-                            ignoreFirst=false;
-                            continue;
-                        }
-                        field = field.trim();
-                        if( field.toLowerCase().startsWith('domain')) {
-                            domainKey=field.substring(0, 'domain'.length);
-                        } else if (field.toLowerCase().startsWith('samesite')) {
-                            sameSiteKey=field.substring(0, 'samesite'.length);
-                        } else if (field.toLowerCase().startsWith('secure')) {
-                            secureKey=field.substring(0, 'secure'.length);
-                        }
-                    }
-
-                    if (domainKey!=null) {
-                        cookieText=modifyCookieField (cookieText, domainKey);
-//                        const newDomain=extractDomain (redirectUrl);
-                    }
-                    cookieText= modifyCookieField(cookieText, sameSiteKey??'SameSite', 'None' );
-                    cookieText= modifyCookieField(cookieText, secureKey??'Secure', '' );
+                    cookieText = transformCookie (originalText);
                     if (debugMode)
                         console.log (logId+"Replaced cookie "+originalText+" to "+cookieText);
                     newCookies.push(cookieText);
@@ -322,21 +333,14 @@ app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
         }
 
         res.status(responseStatus);
-        res.statusMessage=(response as any).statusText??(response as any).statusMessage;
+        res.statusMessage=response.statusText;
             // Handle the locations of the redirect
         if (responseStatus>=300 && responseStatus< 400) {
             const rootLocation=response.headers['location'];
-            if (rootLocation!=null) {
-                if (rootLocation.startsWith('http')) {
-                    res.header("location", redirectUrl+rootLocation);
-                } else if( rootLocation.startsWith('/')){
-                    res.header("location", redirectUrl+targetUrl.origin+rootLocation)
-                } else {
-                    res.header('location',redirectUrl+path+(path.endsWith('/'))?"":"/"+rootLocation);
-                }
-                if (debugMode)
-                    console.log (logId+"Replaced Redirect location "+rootLocation+" to "+res.getHeader('location'));
-            }
+            res.header("location",remapUrl (rootLocation, redirectUrl, path, targetUrl.origin, pathFromUrl));
+            if (debugMode)
+                console.log (logId+"Replaced Redirect location "+rootLocation+" to "+res.getHeader('location'));
+
         }
         if (debugMode)
             console.log(logId+"Sending response: ", convertForLog(res));
@@ -366,7 +370,7 @@ app.all(NGINX_PATH+'/**', async (req: Request, res: Response, next) => {
         }
     }
 
-});
+}
 
 function handleAxiosError(res: Response, error: AxiosError<any, any>, logId:string='') {
     console.error(logId+"Received Error", convertForLog(error));
@@ -382,7 +386,7 @@ function handleUnexpectedError(res: Response, error: unknown,logId:string='') {
     res.status(500).send(error);
 }
 
-function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response | RequestResponse): any {
+function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): any {
     const ret:any={};
     if( item instanceof AxiosError) {
         const axiosError = item as AxiosError;
@@ -409,17 +413,7 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response | Re
             ret.method=expressResponse.req.method;
             ret.headers=expressResponse.req.headers;
         }
-    } else if ((item as any).toJSON!=null) {
-        // It's a RequestResponse
-        const requestResponse = item as RequestResponse;
-        ret.status=requestResponse.statusCode;
-        ret.message=requestResponse.statusMessage;
-        if (requestResponse.request!=null) {
-            ret.url=requestResponse.request.uri;
-            ret.method=requestResponse.request.method;
-            ret.headers=requestResponse.request.headers;
-        }
-    }else {
+    } else  {
         const axiosResponse = item as AxiosResponse;
         ret.status=axiosResponse.status;
         ret.message=axiosResponse.statusText;
@@ -433,7 +427,7 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response | Re
 }
 
 
-app.listen(PORT, () => {
+export const proxyServer=app.listen(PORT, () => {
     console.log('Application started on port '+PORT+ ' with redirection "'+(REDIRECT_HOST?REDIRECT_HOST+REDIRECT_PATH:'proxy')+'".');
 });
 

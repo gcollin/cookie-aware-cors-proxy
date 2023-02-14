@@ -11,8 +11,9 @@ npm install cookie-aware-cors-proxy
 
 ## Extra Features
 
-It can use an engine based on chrome to support the most complex pages.
-
+- Translates cookies and redirect locations from the target website to have the browser continue to call the proxy and not directly the website
+- Extensive and dynamic support for log and debug information
+- Two engines: a lightweight and one based on chrome to support websites running javascript
 
 ## Quick Example
 
