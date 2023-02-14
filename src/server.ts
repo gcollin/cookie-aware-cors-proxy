@@ -427,7 +427,7 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): a
 }
 
 
-app.listen(PORT, () => {
+export const proxyServer=app.listen(PORT, () => {
     console.log('Application started on port '+PORT+ ' with redirection "'+(REDIRECT_HOST?REDIRECT_HOST+REDIRECT_PATH:'proxy')+'".');
 });
 

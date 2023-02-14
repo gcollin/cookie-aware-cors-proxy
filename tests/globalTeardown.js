@@ -1,4 +1,5 @@
 module.exports = async () => {
-    //global.server.close();
-    global.testServer.close();
+    console.log("Teardown:", (global.testedServer==null));
+    global.server.close();
+    global.testedServer.close();
 };

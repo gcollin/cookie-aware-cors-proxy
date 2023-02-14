@@ -22,7 +22,8 @@ module.exports = async () => {
 
     let address = 'localhost.localdomain';
     global.server = server;
-    global.testedServer = testedServer.app;
+    global.testedServer = testedServer.proxyServer;
+    console.log("Setup:", (global.testedServer==null));
     process.env.SERVER_ADDRESS = 'http://'+address+':'+server.address().port;
 
     app.all('/**', async (req, res, next) => {

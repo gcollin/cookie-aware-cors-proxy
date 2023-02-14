@@ -1,0 +1,85 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: CAC-Proxy Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version of the release, if needed (x.y.z-p)
+        required: false
+        type: string
+      next:
+        description: Is it a next release ?
+        required: true
+        type: boolean
+      deploy:
+        description: Deploy to public website?
+        required: true
+        type: boolean
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: 'main'
+          token: ${{secrets.DONTCODE_ACTIONS_TOKEN}}
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+      - name: Version
+        if: ${{ success() && ( inputs.version == '') }}
+        run: |
+          PACKAGE_VERSION=$(npm view cookie-aware-cors-proxy versions --json | jq -r '.[-1]')
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+          npm version $PACKAGE_VERSION --allow-same-version
+      - name: Version Patch
+        if: ${{ success() && ( inputs.version == '') && ( inputs.next == true) }}
+        run: |
+          npm version patch
+      - name: Version Minor
+        if: ${{ success() && ( inputs.version == '') && ( inputs.next == false) }}
+        run: |
+          npm version minor
+      - name: Version
+        if: ${{ success() && ( inputs.version != '') }}
+        run: |
+          PACKAGE_VERSION=${{inputs.version}}
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+          npm version $PACKAGE_VERSION
+      - name: Install
+        run: |
+          npm install
+      - name: Build
+        run: |
+          npm run build
+      - name: Unit tests
+        run: |
+          npm run test
+      - name: Publish library
+        if: ${{ success() && ( inputs.next == true)}}
+        run: |
+          npm publish dist/libs/commerce --access public --tag next
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish library
+        if: ${{ success() && ( inputs.next == false) }}
+        run: |
+          npm publish dist/libs/commerce --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish library
+        if: ${{ success() && ( inputs.deploy == true)}}
+        run: |
+          npm pack
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
