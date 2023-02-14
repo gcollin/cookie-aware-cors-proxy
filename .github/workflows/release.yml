@@ -67,35 +67,57 @@ jobs:
       - name: Unit tests
         run: |
           npm run test
-      - name: Publish library
-        if: ${{ success() && ( inputs.next == true)}}
-        run: |
-          npm publish dist/libs/commerce --access public --tag next
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish library
-        if: ${{ success() && ( inputs.next == false) }}
-        run: |
-          npm publish dist/libs/commerce --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish library
+#      - name: Publish to Npm
+#        if: ${{ success() && ( inputs.next == true)}}
+#        run: |
+#          npm publish . --access public --tag next
+#        env:
+#          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+#      - name: Publish to Npm
+#        if: ${{ success() && ( inputs.next == false) }}
+#        run: |
+#          npm publish . --access public
+#        env:
+#          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Deploy library
         if: ${{ success() && ( inputs.deploy == true)}}
         run: |
-          npm pack
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          npm run pack
       - name: Create checksum
         uses: jmgilman/actions-generate-checksum@v1
         with:
           patterns: |
-            cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz
-      - name: Create release
-        if: ${{ success() && inputs.branch == 'main'}}
-        uses: softprops/action-gh-release@master
+            dist/cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz
+
+#      - name: Create release
+#        if: ${{ success() && inputs.branch == 'main'}}
+#        uses: softprops/action-gh-release@master
+#        with:
+#          name: v${{PACKAGE_VERSION}}
+#          tag_name: v${{PACKAGE_VERSION}}
+#          files: |
+#            checksum.txt
+#            dist/cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz
+      - name: Deploy to Shared server
+        uses: appleboy/scp-action@master
         with:
-          name: v${{PACKAGE_VERSION}}
-          tag_name: v${{PACKAGE_VERSION}}
-          files: |
-            checksum.txt
-            cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz
+          host: shared.collin.best
+          username: cac-proxy
+          key: ${{ secrets.SHARED_KEY }}
+          passphrase: ${{ secrets.SHARED_PASSPHRASE }}
+          source: "dist/cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz"
+          target: "/opt/yunohost/cac-proxy"
+
+      - name: Restart in Shared server
+        uses: appleboy/ssh-action@master
+        with:
+          host: shared.collin.best
+          username: cac-proxy
+          key: ${{ secrets.SHARED_KEY }}
+          passphrase: ${{ secrets.SHARED_PASSPHRASE }}
+          script: |
+            rm -rf package
+            tar -xzf "cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz"
+            cp -R package/* .
+            rm -rf package
+            ./restart-proxy.sh 

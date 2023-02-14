@@ -2,13 +2,14 @@
   "name": "cookie-aware-cors-proxy",
   "version": "1.0.15",
   "description": "",
-  "main": "index.js",
+  "main": "src/server.js",
   "scripts": {
     "start": "ts-node ./src/server.ts",
     "start:nodemon": "./node_modules/nodemon/bin/nodemon.js",
-    "start:prod": "npm run build && node ./src/server.js",
+    "start:prod": "npm run build && cd ./dist && node ./src/server.js",
     "build": "npx tsc",
-    "test": "jest"
+    "test": "jest",
+    "pack": "cp package*.json dist && cd ./dist && rm -f *.tgz && mv ../node_modules . && npm pack && mv node_modules .."
   },
   "keywords": [],
   "author": "",
