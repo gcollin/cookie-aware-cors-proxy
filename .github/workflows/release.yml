@@ -84,31 +84,34 @@ jobs:
         run: |
           npm run pack
       - name: Create checksum
+        if: ${{ success() && ( inputs.deploy == true)}}
         uses: jmgilman/actions-generate-checksum@v1
         with:
           patterns: |
-            dist/cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz
+            dist/cookie-aware-cors-proxy-${{ env.PACKAGE_VERSION }}.tgz
 
 #      - name: Create release
 #        if: ${{ success() && inputs.branch == 'main'}}
 #        uses: softprops/action-gh-release@master
 #        with:
-#          name: v${{PACKAGE_VERSION}}
-#          tag_name: v${{PACKAGE_VERSION}}
+#          name: v${{env.PACKAGE_VERSION}}
+#          tag_name: v${{env.PACKAGE_VERSION}}
 #          files: |
 #            checksum.txt
-#            dist/cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz
+#            dist/cookie-aware-cors-proxy-${{ env.PACKAGE_VERSION }}.tgz
       - name: Deploy to Shared server
+        if: ${{ success() && ( inputs.deploy == true)}}
         uses: appleboy/scp-action@master
         with:
           host: shared.collin.best
           username: cac-proxy
           key: ${{ secrets.SHARED_KEY }}
           passphrase: ${{ secrets.SHARED_PASSPHRASE }}
-          source: "dist/cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz"
+          source: "dist/cookie-aware-cors-proxy-${{ env.PACKAGE_VERSION }}.tgz"
           target: "/opt/yunohost/cac-proxy"
 
       - name: Restart in Shared server
+        if: ${{ success() && ( inputs.deploy == true)}}
         uses: appleboy/ssh-action@master
         with:
           host: shared.collin.best
@@ -117,7 +120,7 @@ jobs:
           passphrase: ${{ secrets.SHARED_PASSPHRASE }}
           script: |
             rm -rf package
-            tar -xzf "cookie-aware-cors-proxy-${{ PACKAGE_VERSION }}.tgz"
+            tar -xzf "cookie-aware-cors-proxy-${{ env.PACKAGE_VERSION }}.tgz"
             cp -R package/* .
             rm -rf package
             ./restart-proxy.sh 
