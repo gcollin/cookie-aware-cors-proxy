@@ -109,6 +109,7 @@ jobs:
           passphrase: ${{ secrets.SHARED_PASSPHRASE }}
           source: "dist/cookie-aware-cors-proxy-${{ env.PACKAGE_VERSION }}.tgz"
           target: "/opt/yunohost/cac-proxy"
+          strip_components: 1
 
       - name: Restart in Shared server
         if: ${{ success() && ( inputs.deploy == true)}}
