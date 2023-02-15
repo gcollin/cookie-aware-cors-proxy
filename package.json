@@ -7,9 +7,9 @@
     "start": "ts-node ./src/server.ts",
     "start:nodemon": "./node_modules/nodemon/bin/nodemon.js",
     "start:prod": "npm run build && cd ./dist && node ./src/server.js",
-    "build": "npx tsc",
+    "build": "npx tsc && cp package*.json dist",
     "test": "jest",
-    "pack": "cp package*.json dist && cd ./dist && rm -f *.tgz && mv ../node_modules . && npm pack && mv node_modules .."
+    "pack": "cd ./dist && rm -f *.tgz && mv ../node_modules . && npm pack && mv node_modules .."
   },
   "keywords": [],
   "author": "",
