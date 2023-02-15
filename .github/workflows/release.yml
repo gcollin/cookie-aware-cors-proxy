@@ -89,6 +89,7 @@ jobs:
           patterns: |
             dist/cookie-aware-cors-proxy.tgz
       - name: Create Github release
+        if: ${{ success() && ( inputs.next == false) }}
         uses: softprops/action-gh-release@master
         with:
           name: ${{env.PACKAGE_VERSION}}
