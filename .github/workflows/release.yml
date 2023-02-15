@@ -83,12 +83,14 @@ jobs:
         if: ${{ success() && ( inputs.deploy == true)}}
         run: |
           npm run pack
+          cd ./dist
+          mv cookie-aware-cors-proxy-*.tgz cookie-aware-cors-proxy.tgz
       - name: Create checksum
         if: ${{ success() && ( inputs.deploy == true)}}
         uses: jmgilman/actions-generate-checksum@v1
         with:
           patterns: |
-            dist/cookie-aware-cors-proxy-${{ env.PACKAGE_VERSION }}.tgz
+            dist/cookie-aware-cors-proxy.tgz
 
 #      - name: Create release
 #        if: ${{ success() && inputs.branch == 'main'}}
@@ -107,7 +109,7 @@ jobs:
           username: cac-proxy
           key: ${{ secrets.SHARED_KEY }}
           passphrase: ${{ secrets.SHARED_PASSPHRASE }}
-          source: "dist/cookie-aware-cors-proxy-${{ env.PACKAGE_VERSION }}.tgz"
+          source: "dist/cookie-aware-cors-proxy.tgz"
           target: "/opt/yunohost/cac-proxy"
           strip_components: 1
 
@@ -121,7 +123,8 @@ jobs:
           passphrase: ${{ secrets.SHARED_PASSPHRASE }}
           script: |
             rm -rf package
-            tar -xzf "cookie-aware-cors-proxy-${{ env.PACKAGE_VERSION }}.tgz"
+            tar -xzf "cookie-aware-cors-proxy.tgz"
             cp -R package/* .
             rm -rf package
+            rm "cookie-aware-cors-proxy.tgz"
             ./restart-proxy.sh 
