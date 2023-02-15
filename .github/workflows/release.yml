@@ -41,23 +41,23 @@ jobs:
         run: |
           PACKAGE_VERSION=$(npm view cookie-aware-cors-proxy versions --json | jq -r '.[-1]')
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
-          npm version $PACKAGE_VERSION --allow-same-version
+          npm version $PACKAGE_VERSION --allow-same-version --git-tag-version=false
       - name: Version Patch
         if: ${{ success() && ( inputs.version == '') && ( inputs.next == true) }}
         run: |
-          PACKAGE_VERSION = $(npm version patch)
+          PACKAGE_VERSION = $(npm version patch --git-tag-version=false)
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
       - name: Version Minor
         if: ${{ success() && ( inputs.version == '') && ( inputs.next == false) }}
         run: |
-          PACKAGE_VERSION = $(npm version minor)
+          PACKAGE_VERSION = $(npm version minor --git-tag-version=false)
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
       - name: Version
         if: ${{ success() && ( inputs.version != '') }}
         run: |
           PACKAGE_VERSION=${{inputs.version}}
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
-          npm version $PACKAGE_VERSION
+          npm version $PACKAGE_VERSION --git-tag-version=false
       - name: Install
         run: |
           npm install
