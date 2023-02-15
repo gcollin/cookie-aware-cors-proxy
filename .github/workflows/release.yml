@@ -56,7 +56,7 @@ jobs:
         if: ${{ success() && ( inputs.version != '') }}
         run: |
           PACKAGE_VERSION=${{inputs.version}}
-          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=v$PACKAGE_VERSION" >> $GITHUB_ENV
           npm version $PACKAGE_VERSION --git-tag-version=false
       - name: Install
         run: |
@@ -67,18 +67,18 @@ jobs:
       - name: Unit tests
         run: |
           npm run test
-#      - name: Publish to Npm
-#        if: ${{ success() && ( inputs.next == true)}}
-#        run: |
-#          npm publish . --access public --tag next
-#        env:
-#          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-#      - name: Publish to Npm
-#        if: ${{ success() && ( inputs.next == false) }}
-#        run: |
-#          npm publish . --access public
-#        env:
-#          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to Npm
+        if: ${{ success() && ( inputs.next == true)}}
+        run: |
+          npm publish ./dist --access public --tag next
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to Npm
+        if: ${{ success() && ( inputs.next == false) }}
+        run: |
+          npm publish ./dist --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Deploy library
         if: ${{ success() && ( inputs.deploy == true)}}
         run: |
@@ -91,16 +91,15 @@ jobs:
         with:
           patterns: |
             dist/cookie-aware-cors-proxy.tgz
-
-#      - name: Create release
-#        if: ${{ success() && inputs.branch == 'main'}}
-#        uses: softprops/action-gh-release@master
-#        with:
-#          name: v${{env.PACKAGE_VERSION}}
-#          tag_name: v${{env.PACKAGE_VERSION}}
-#          files: |
-#            checksum.txt
-#            dist/cookie-aware-cors-proxy-${{ env.PACKAGE_VERSION }}.tgz
+      - name: Create release
+        if: ${{ success() && inputs.branch == 'main'}}
+        uses: softprops/action-gh-release@master
+        with:
+          name: ${{env.PACKAGE_VERSION}}
+          tag_name: ${{env.PACKAGE_VERSION}}
+          files: |
+            checksum.txt
+            dist/cookie-aware-cors-proxy.tgz
       - name: Deploy to Shared server
         if: ${{ success() && ( inputs.deploy == true)}}
         uses: appleboy/scp-action@master
