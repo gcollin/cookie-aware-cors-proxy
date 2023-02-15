@@ -45,12 +45,12 @@ jobs:
       - name: Version Patch
         if: ${{ success() && ( inputs.version == '') && ( inputs.next == true) }}
         run: |
-          PACKAGE_VERSION = $(npm version patch --git-tag-version=false)
+          PACKAGE_VERSION=$(npm version patch --git-tag-version=false)
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
       - name: Version Minor
         if: ${{ success() && ( inputs.version == '') && ( inputs.next == false) }}
         run: |
-          PACKAGE_VERSION = $(npm version minor --git-tag-version=false)
+          PACKAGE_VERSION=$(npm version minor --git-tag-version=false)
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
       - name: Version
         if: ${{ success() && ( inputs.version != '') }}
