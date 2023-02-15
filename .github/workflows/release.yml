@@ -79,20 +79,16 @@ jobs:
           npm publish ./dist --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Deploy library
-        if: ${{ success() && ( inputs.deploy == true)}}
+      - name: Release library
         run: |
           npm run pack
           cd ./dist
           mv cookie-aware-cors-proxy-*.tgz cookie-aware-cors-proxy.tgz
-      - name: Create checksum
-        if: ${{ success() && ( inputs.deploy == true)}}
-        uses: jmgilman/actions-generate-checksum@v1
+      - uses: jmgilman/actions-generate-checksum@v1
         with:
           patterns: |
             dist/cookie-aware-cors-proxy.tgz
-      - name: Create release
-        if: ${{ success() && inputs.branch == 'main'}}
+      - name: Create Github release
         uses: softprops/action-gh-release@master
         with:
           name: ${{env.PACKAGE_VERSION}}
