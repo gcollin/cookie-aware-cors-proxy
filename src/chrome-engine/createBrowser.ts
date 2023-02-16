@@ -1,6 +1,5 @@
 import puppeteer from 'puppeteer-extra';
 import {Browser, PuppeteerLaunchOptions} from 'puppeteer';
-import {getUserAgent} from './utils';
 import {AxiosRequestConfig} from "axios";
 
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
@@ -56,13 +55,13 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
     args.push(`--proxy-server=${proxy}`);
   }*/
 
- // const execPath=puppeteer.executablePath();
+//  const execPath=puppeteer.executablePath();
   let puppeteerOptions:PuppeteerLaunchOptions = {
     headless: PUPPETEER_HEADLESS === 'false',
     ignoreHTTPSErrors,
     defaultViewport: undefined,
     channel: 'chrome',
-//    executablePath: execPath,
+    executablePath: '/usr/lib/chromium/chromium',
     ...config.puppeteerOptions,
     args
   };

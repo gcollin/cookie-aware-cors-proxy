@@ -1,9 +1,8 @@
 import axios, {AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 
-import {isProtectedByStormwall, getStormwallCookie} from 'stormwall-bypass';
-import { getUserAgent } from './utils';
-import { runThroughChrome } from './fillCookiesJar';
-import { isCloudflareJSChallenge, isCloudflareCaptchaChallenge } from './utils';
+import {getStormwallCookie, isProtectedByStormwall} from 'stormwall-bypass';
+import {getUserAgent, isCloudflareCaptchaChallenge, isCloudflareJSChallenge} from './utils';
+import {runThroughChrome} from './fillCookiesJar';
 import {CookieJar} from "tough-cookie";
 
 function isCloudflareIUAMError(error: AxiosError<string>) {
