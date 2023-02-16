@@ -3,6 +3,7 @@ import {Browser, PuppeteerLaunchOptions} from 'puppeteer';
 import {AxiosRequestConfig} from "axios";
 
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import * as fs from "fs";
 
 const {
   PUPPETEER_HEADLESS = 'true',
@@ -65,6 +66,10 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
     ...config.puppeteerOptions,
     args
   };
+
+  if (fs.existsSync('/opt/google/chrome/chrome')) {
+    puppeteerOptions.executablePath='/opt/google/chrome/chrome';
+  }
 
   /*if (chromium) {
     puppeteerOptions = {
