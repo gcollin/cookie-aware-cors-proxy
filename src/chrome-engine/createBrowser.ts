@@ -61,7 +61,7 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
     ignoreHTTPSErrors,
     defaultViewport: undefined,
     channel: 'chrome',
-    executablePath: '/usr/lib/chromium/chromium',
+//    executablePath: execPath,
     ...config.puppeteerOptions,
     args
   };
