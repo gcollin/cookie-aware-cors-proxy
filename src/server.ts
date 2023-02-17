@@ -1,8 +1,10 @@
-import express, {NextFunction, Request, Response} from 'express';
+import express, { NextFunction, Request, Response} from 'express';
 import axios, {AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 import {Stream} from "stream";
 import {chromeEngine} from './chrome-engine/chromeEngine';
 import {Cookie} from "tough-cookie";
+import { argv } from 'process';
+import * as http from "http";
 
 const PORT=process.env.CACP_PORT||3000;
 const REDIRECT_PATH=process.env.CACP_REDIRECT_PATH||'/proxy';
@@ -426,8 +428,32 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): a
     return ret;
 }
 
+let proxyServer:http.Server|null=null;
 
-export const proxyServer=app.listen(PORT, () => {
-    console.log('Application started on port '+PORT+ ' with redirection "'+(REDIRECT_HOST?REDIRECT_HOST+REDIRECT_PATH:'proxy')+'".');
-});
+export function getProxyServer (): http.Server {
+    if( proxyServer!=null)
+        return proxyServer
+    else throw new Error("No proxy Server created");
+}
 
+if( argv[2]==='testChrome') {
+
+    chromeEngine.request('chrome', {url:'https://dont-code.net', method:'get'}).then(value => {
+       if( value.status==200) {
+           console.log('Succesfully called external website.');
+           process.exit(0);
+       }
+       else {
+           console.error('Error '+value.status+' calling external website.');
+           process.exit(1);
+       }
+    }).catch(reason => {
+        console.error('Error calling external website:', reason);
+        process.exit(-1);
+    });
+
+} else {
+    proxyServer=app.listen(PORT, () => {
+        console.log('Application started on port '+PORT+ ' with redirection "'+(REDIRECT_HOST?REDIRECT_HOST+REDIRECT_PATH:'proxy')+'".');
+    });
+}
