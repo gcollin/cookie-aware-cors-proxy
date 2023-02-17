@@ -119,7 +119,5 @@ jobs:
           script: |
             rm -rf package
             tar -xzf "cookie-aware-cors-proxy.tgz"
-            cp -R package/* .
-            rm -rf package
             rm "cookie-aware-cors-proxy.tgz"
             ./restart-proxy.sh 
