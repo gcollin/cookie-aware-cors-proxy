@@ -4,6 +4,9 @@ import {AxiosRequestConfig} from "axios";
 
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import * as fs from "fs";
+import {BrowserFetcher} from "puppeteer-core";
+import path from "path";
+import * as os from "os";
 
 const {
   PUPPETEER_HEADLESS = 'true',
@@ -67,9 +70,23 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
     args
   };
 
-  if (fs.existsSync('/opt/google/chrome/chrome')) {
-    puppeteerOptions.executablePath='/opt/google/chrome/chrome';
+    // Try to find the best executablePath
+  const fetcher = new BrowserFetcher({product:'chrome',  path:path.join(os.homedir(),'.cache/puppeteer/chrome')});
+
+  const revisions=fetcher.localRevisions().sort((a, b) => {
+    return Number.parseInt(b).valueOf() - Number.parseInt(a).valueOf();
+  });
+
+  if( revisions.length==0) {
+      // Prefer chrome to chromium if it exists
+    if (fs.existsSync('/opt/google/chrome/chrome')) {
+      puppeteerOptions.executablePath='/opt/google/chrome/chrome';
+    }
+  } else {
+    puppeteerOptions.executablePath=fetcher.revisionInfo(revisions[0]).executablePath;
   }
+
+  console.debug("Using Chromium/Chrome from :", puppeteerOptions.executablePath);
 
   /*if (chromium) {
     puppeteerOptions = {
@@ -81,6 +98,7 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
     };
   }*/
   puppeteerOptions.headless=true;
+  puppeteerOptions.dumpio=true;
 
   return await puppeteer.launch(puppeteerOptions);
 }
