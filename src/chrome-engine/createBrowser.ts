@@ -40,7 +40,7 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
     proxy: HTTP_PROXY || HTTPS_PROXY,
     browserWSEndpoint: undefined,
     browserUrl:undefined,
-    puppeteerOptions: {args:undefined}
+    puppeteerOptions: {args:undefined, dumpio:true}
   };
   const ignoreHTTPSErrors = PUPPETEER_IGNORE_HTTPS_ERROR === 'true';
 
@@ -48,7 +48,7 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
     return puppeteer.connect({ browserWSEndpoint:config.browserWSEndpoint, browserURL:config.browserUrl, ignoreHTTPSErrors });
   }
 
-  let args = ['--no-sandbox', '--disable-setuid-sandbox']
+  let args = []
   if (userAgent!=null) {
     args.push('--user-agent=' + userAgent);
   }

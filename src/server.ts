@@ -438,7 +438,11 @@ export function getProxyServer (): http.Server {
 
 if( argv[2]==='testChrome') {
 
-    chromeEngine.request('chrome', {url:'https://dont-code.net', method:'get'}).then(value => {
+    let url = 'https://dont-code.net';
+    if( argv[3] != null) {
+        url = argv[3];
+    }
+    chromeEngine.request('chrome', {url:url, method:'get'}).then(value => {
        if( value.status==200) {
            console.log('Succesfully called external website.');
            process.exit(0);
