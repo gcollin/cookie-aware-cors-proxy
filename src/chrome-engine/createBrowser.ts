@@ -40,7 +40,7 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
     proxy: HTTP_PROXY || HTTPS_PROXY,
     browserWSEndpoint: undefined,
     browserUrl:undefined,
-    puppeteerOptions: {args:undefined, dumpio:true}
+    puppeteerOptions: {args:undefined, dumpio:false}
   };
   const ignoreHTTPSErrors = PUPPETEER_IGNORE_HTTPS_ERROR === 'true';
 
@@ -86,7 +86,7 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
     puppeteerOptions.executablePath=fetcher.revisionInfo(revisions[0]).executablePath;
   }
 
-  console.debug("Using Chromium/Chrome from :", puppeteerOptions.executablePath);
+ // console.debug("Using Chromium/Chrome from :", puppeteerOptions.executablePath);
 
   /*if (chromium) {
     puppeteerOptions = {
@@ -98,7 +98,7 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
     };
   }*/
   puppeteerOptions.headless=true;
-  puppeteerOptions.dumpio=true;
+  puppeteerOptions.dumpio=false;
 
   return await puppeteer.launch(puppeteerOptions);
 }
