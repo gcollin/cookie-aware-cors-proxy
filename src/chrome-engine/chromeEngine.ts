@@ -1,5 +1,6 @@
 import axios, {AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 
+import {cleanUpStatusText} from "./createBrowser";
 import {getStormwallCookie, isProtectedByStormwall} from 'stormwall-bypass';
 import {getUserAgent, isCloudflareCaptchaChallenge, isCloudflareJSChallenge} from './utils';
 import {runThroughChrome} from './fillCookiesJar';
@@ -60,7 +61,7 @@ async function cloudflareScraper(options:AxiosRequestConfig<string>): Promise<Ax
         } else {
             return {
                 status:500,
-                statusText:"Error "+err,
+                statusText:cleanUpStatusText("Error "+err),
                 headers:{},
                 data:undefined,
                 config:options as InternalAxiosRequestConfig

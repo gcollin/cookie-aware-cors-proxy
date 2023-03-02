@@ -1,4 +1,4 @@
-import {createBrowser} from './createBrowser';
+import {createBrowser, cleanUpStatusText} from './createBrowser';
 import {Cookie} from 'tough-cookie';
 import {isCloudflareJSChallenge} from './utils';
 import {AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
@@ -143,10 +143,12 @@ function convertError (err:any, config:AxiosRequestConfig): AxiosResponse {
             errorMsg=err.toString();
         }
     }
+
+    // Ensure status text is valid
     return {
         status:500,
-        statusText:errorMsg,
-        data:undefined,
+        statusText:cleanUpStatusText(errorMsg),
+        data:errorMsg,
         headers:{},
         config:config as InternalAxiosRequestConfig
     };

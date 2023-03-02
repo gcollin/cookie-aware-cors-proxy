@@ -365,10 +365,15 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
         }
 
     } catch (error) {
+        try {
         if (axios.isAxiosError(error)) {
             handleAxiosError(res,error, logId);
         } else {
             handleUnexpectedError(res, error, logId);
+        }
+        } catch (errorInError) {
+            // Even error handling crashes, just send error 500
+            res.sendStatus(500);
         }
     }
 

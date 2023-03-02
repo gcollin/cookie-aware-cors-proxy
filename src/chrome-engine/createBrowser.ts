@@ -103,3 +103,7 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
   return await puppeteer.launch(puppeteerOptions);
 }
 
+
+export function cleanUpStatusText (msg:string): string {
+  return msg?.replace(/\n|\r/g, ' ').substring(0, Math.min(50, msg.length-1))
+}
