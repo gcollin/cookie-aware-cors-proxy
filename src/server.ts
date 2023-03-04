@@ -12,7 +12,7 @@ const REDIRECT_HOST=process.env.CACP_REDIRECT_HOST;
 const DEBUG_MODE=process.env.CACP_DEBUG==='TRUE';
 const LOG_MODE=process.env.CACP_LOG==='TRUE';
 const NGINX_PATH=process.env.CACP_NGINX_PATH||'/proxy';
-const BYPASS_CHROME_SANDBOX=process.env.CACP_BYPASS_SANDBOXCACP_BYPASS_SANDBOX==='TRUE';
+const BYPASS_CHROME_SANDBOX=process.env.CACP_BYPASS_SANDBOX=='TRUE';
 
 export const app = express();
 app.use(express.json()) // for parsing application/json
