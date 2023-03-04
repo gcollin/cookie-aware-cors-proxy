@@ -35,7 +35,7 @@ if (!puppeteerCore) {
 
 puppeteer.use(StealthPlugin());
 
-export async function createBrowser(options: AxiosRequestConfig, userAgent?:string):Promise <Browser>{
+export async function createBrowser(options: AxiosRequestConfig, bypassSandbox:boolean, userAgent?:string):Promise <Browser>{
   const config= {
     proxy: HTTP_PROXY || HTTPS_PROXY,
     browserWSEndpoint: undefined,
@@ -49,6 +49,10 @@ export async function createBrowser(options: AxiosRequestConfig, userAgent?:stri
   }
 
   let args = []
+  if( bypassSandbox) {
+    args.push('--no-sandbox', '--disable-setuid-sandbox');
+  }
+
   if (userAgent!=null) {
     args.push('--user-agent=' + userAgent);
   }

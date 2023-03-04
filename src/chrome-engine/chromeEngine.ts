@@ -14,10 +14,10 @@ function isCloudflareIUAMError(error: AxiosError<string>) {
   return false;
 }
 
-async function handleError(error:AxiosError<string>, jar:CookieJar):Promise<AxiosResponse> {
+async function handleError(error:AxiosError<string>, bypassSandbox:boolean, jar:CookieJar):Promise<AxiosResponse> {
   if (isCloudflareIUAMError(error)) {
     if (error.config!=null) {
-        let response = await runThroughChrome( error.config, getUserAgent());
+        let response = await runThroughChrome( error.config, bypassSandbox, getUserAgent());
         return response;
     }
   }
@@ -49,14 +49,14 @@ function addCookieToAxiosRequest (cookie: string, options:AxiosRequestConfig):vo
     }
 }
 
-async function cloudflareScraper(options:AxiosRequestConfig<string>): Promise<AxiosResponse<any>> {
+async function cloudflareScraper(options:AxiosRequestConfig<string>, bypassSandbox:boolean): Promise<AxiosResponse<any>> {
     const jar= new CookieJar();
     try {
         const response = await axios.request(options);
         return handleResponse(response, options, jar);
     } catch (err:any) {
         if( err.options!=null) {
-            let content = handleError(err, jar);
+            let content = handleError(err, bypassSandbox, jar);
             return content;
         } else {
             return {
@@ -70,21 +70,21 @@ async function cloudflareScraper(options:AxiosRequestConfig<string>): Promise<Ax
     }
 }
 
-async function chromeScraper(options:AxiosRequestConfig<string>): Promise<AxiosResponse<any>> {
+async function chromeScraper(options:AxiosRequestConfig<string>, bypassSandbox:boolean): Promise<AxiosResponse<any>> {
     const jar= new CookieJar();
-    return runThroughChrome(options);
+    return runThroughChrome(options, bypassSandbox);
 }
 
 export const chromeEngine= {
 
-    request<T = any>(engine:string, config: AxiosRequestConfig<string>): Promise<AxiosResponse<T>> {
+    request<T = any>(engine:string, config: AxiosRequestConfig<string>, bypassSandbox:boolean): Promise<AxiosResponse<T>> {
         if (engine==='cloudflare')
-            return this.requestCloudFlare(config);
+            return this.requestCloudFlare(config, bypassSandbox);
         else
-            return this.requestChrome(config);
+            return this.requestChrome(config, bypassSandbox);
     },
 
-    requestCloudFlare<T = any>(config: AxiosRequestConfig<string>): Promise<AxiosResponse<T>> {
+    requestCloudFlare<T = any>(config: AxiosRequestConfig<string>, bypassSandbox:boolean): Promise<AxiosResponse<T>> {
         if( config.headers==null) {
             config.headers={ 'User-Agent': getUserAgent() };
         }else {
@@ -92,12 +92,12 @@ export const chromeEngine= {
         }
         config.responseType='text';
         config.decompress=false;
-        return cloudflareScraper(config);
+        return cloudflareScraper(config, bypassSandbox);
     },
 
-    requestChrome<T = any>(config: AxiosRequestConfig<string>): Promise<AxiosResponse<T>> {
+    requestChrome<T = any>(config: AxiosRequestConfig<string>, bypassSandbox:boolean): Promise<AxiosResponse<T>> {
         config.responseType='text';
         config.decompress=false;
-        return chromeScraper(config);
+        return chromeScraper(config, bypassSandbox);
     }
 };

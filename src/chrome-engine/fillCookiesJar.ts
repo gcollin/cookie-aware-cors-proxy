@@ -48,7 +48,7 @@ function cookieAsString(foundCookie: Protocol.Network.Cookie) {
     return ret.cookieString();
 }
 
-export async function runThroughChrome(options:AxiosRequestConfig, userAgent?:string):Promise<AxiosResponse> {
+export async function runThroughChrome(options:AxiosRequestConfig, bypassSandbox:boolean, userAgent?:string):Promise<AxiosResponse> {
     //const jar = options.jar;
     let url = options.url;
     if( url == null) {
@@ -57,7 +57,7 @@ export async function runThroughChrome(options:AxiosRequestConfig, userAgent?:st
     let browser;
 
     try {
-        browser = await createBrowser(options, userAgent);
+        browser = await createBrowser(options, bypassSandbox, userAgent);
         const page = await browser.newPage();
         let response = await page.goto(url, {
             timeout: 45000,

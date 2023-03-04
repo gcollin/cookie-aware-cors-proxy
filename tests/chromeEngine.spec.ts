@@ -16,7 +16,7 @@ describe('Chrome tests', () => {
         chromeEngine.request('chrome',{
             url:process.env.SERVER_ADDRESS+'/index.html',
             method:'get'
-        }).then ((response)=> {
+        }, false).then ((response)=> {
             expect (response.status).toEqual(200);
             expect(response.data).toContain("Test Title");
             done();
@@ -28,7 +28,7 @@ describe('Chrome tests', () => {
         chromeEngine.request('chrome',{
             url:process.env.SERVER_ADDRESS+'/redirect/index.html',
             method:'get'
-        }).then ((response)=> {
+        }, true).then ((response)=> {
             expect (response.status).toEqual(200);
             expect(response.data).toContain("Test Title");
             done();
