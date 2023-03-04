@@ -228,7 +228,12 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
             // except for host that needs to be the server's host (and not the proxy's host)
         for (const headerKey in req.headers) {
             if( headerKey.toLowerCase()=='host') {
-                config.headers[headerKey]=targetUrl.host;
+                //config.headers[headerKey]=targetUrl.host;
+                delete config.headers[headerKey];
+                if (debugMode) {
+                    console.log(logId+"Removing Host header");
+                }
+
             } else if( headerKey.toLowerCase()=='origin') {
                 if (debugMode) {
                     console.log(logId+"Changing "+headerKey+' from '+req.headers[headerKey]+' to '+targetUrl.origin);
