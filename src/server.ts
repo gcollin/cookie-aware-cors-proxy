@@ -12,6 +12,7 @@ const REDIRECT_HOST=process.env.CACP_REDIRECT_HOST;
 const DEBUG_MODE=process.env.CACP_DEBUG==='TRUE';
 const LOG_MODE=process.env.CACP_LOG==='TRUE';
 const NGINX_PATH=process.env.CACP_NGINX_PATH||'/proxy';
+const BYPASS_CHROME_SANDBOX=process.env.CACP_BYPASS_SANDBOX==='TRUE';
 
 export const app = express();
 app.use(express.json()) // for parsing application/json
@@ -281,7 +282,7 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
         if (req.query['engine']!=null) {
             const engine=(req.query['engine'] as string).toLowerCase();
             if( engine==='chrome' || engine==='cloudflare') {
-                const chromeResult = await chromeEngine.request(engine, config);
+                const chromeResult = await chromeEngine.request(engine, config, BYPASS_CHROME_SANDBOX);
                 if (chromeResult!=null) {
                     response = chromeResult;
                 } else {
@@ -365,10 +366,15 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
         }
 
     } catch (error) {
+        try {
         if (axios.isAxiosError(error)) {
             handleAxiosError(res,error, logId);
         } else {
             handleUnexpectedError(res, error, logId);
+        }
+        } catch (errorInError) {
+            // Even error handling crashes, just send error 500
+            res.sendStatus(500);
         }
     }
 
@@ -442,7 +448,7 @@ if( argv[2]==='testChrome') {
     if( argv[3] != null) {
         url = argv[3];
     }
-    chromeEngine.request('chrome', {url:url, method:'get'}).then(value => {
+    chromeEngine.request('chrome', {url:url, method:'get'}, BYPASS_CHROME_SANDBOX).then(value => {
        if( value.status==200) {
            console.log('Succesfully called external website.');
            process.exit(0);
