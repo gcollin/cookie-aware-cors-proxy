@@ -12,7 +12,7 @@ const REDIRECT_HOST=process.env.CACP_REDIRECT_HOST;
 const DEBUG_MODE=process.env.CACP_DEBUG==='TRUE';
 const LOG_MODE=process.env.CACP_LOG==='TRUE';
 const NGINX_PATH=process.env.CACP_NGINX_PATH||'/proxy';
-const BYPASS_CHROME_SANDBOX=process.env.CACP_BYPASS_SANDBOX==='TRUE';
+const BYPASS_CHROME_SANDBOX=process.env.CACP_BYPASS_SANDBOX=='TRUE';
 
 export const app = express();
 app.use(express.json()) // for parsing application/json
@@ -246,12 +246,12 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
                     console.log(logId+"Changing "+headerKey+' from '+req.headers[headerKey]+' to navigate');
                 }
                 config.headers[headerKey]='navigate';
-            } else if( headerKey.toLowerCase()=='sec-fetch-site') {
+            }*/ else if( headerKey.toLowerCase()=='sec-fetch-site') {
                 if (debugMode) {
                     console.log(logId+"Changing "+headerKey+' from '+req.headers[headerKey]+' to same-site');
                 }
                 config.headers[headerKey]='same-site';
-            } else if( headerKey.toLowerCase()=='sec-fetch-dest') {
+            } /*else if( headerKey.toLowerCase()=='sec-fetch-dest') {
                 if (debugMode) {
                     console.log(logId+"Changing "+headerKey+' from '+req.headers[headerKey]+' to document');
                 }
