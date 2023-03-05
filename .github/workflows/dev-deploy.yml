@@ -32,6 +32,11 @@ jobs:
       - name: Unit tests
         run: |
           npm run test
+      - name: Pack library
+        run: |
+          npm run pack
+          cd ./dist
+          mv cookie-aware-cors-proxy-*.tgz cookie-aware-cors-proxy.tgz
       - name: Deploy to Shared server
         uses: appleboy/scp-action@master
         with:
