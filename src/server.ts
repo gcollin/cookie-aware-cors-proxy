@@ -454,6 +454,8 @@ if( argv[2]==='testChrome') {
         url = argv[3];
     }
     chromeEngine.request('chrome', {url:url, method:'get'}, BYPASS_CHROME_SANDBOX).then(value => {
+       console.log('Response received with status: '+value.status);
+       console.log(value.data);
        if( value.status==200) {
            console.log('Succesfully called external website.');
            process.exit(0);
