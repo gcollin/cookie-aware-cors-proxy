@@ -1,6 +1,6 @@
 {
   "name": "cookie-aware-cors-proxy",
-  "version": "1.1.12",
+  "version": "1.1.13",
   "description": "",
   "main": "src/server.js",
   "scripts": {
