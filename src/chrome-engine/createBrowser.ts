@@ -4,7 +4,7 @@ import {AxiosRequestConfig} from "axios";
 
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import * as fs from "fs";
-import {BrowserFetcher} from "puppeteer-core";
+import {BrowserFetcher} from "puppeteer";
 import path from "path";
 import * as os from "os";
 

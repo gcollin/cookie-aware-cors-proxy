@@ -130,8 +130,13 @@ export async function runThroughChrome(options:AxiosRequestConfig, bypassSandbox
         console.log(err);
         return convertError (err, options);
     } finally {
-        if (browser)
-            await browser.close();
+        if (browser) {
+            try {
+                await browser.close();
+            } catch (error) {
+                console.error("Error closing the Chrome Bowser:", error);
+            }
+        }
     }
 }
 
