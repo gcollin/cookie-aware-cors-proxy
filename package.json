@@ -28,6 +28,9 @@
     "axios",
     "express",
     "hcaptcha-solver",
+    "puppeteer",
+    "puppeteer-extra",
+    "puppeteer-extra-plugin-stealth",
     "stormwall-bypass",
     "tough-cookie"
   ],
