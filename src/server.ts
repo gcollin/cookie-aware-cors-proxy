@@ -5,6 +5,7 @@ import {chromeEngine} from './chrome-engine/chromeEngine';
 import {Cookie} from "tough-cookie";
 import { argv } from 'process';
 import * as http from "http";
+import {transformCookie} from "./chrome-engine/fillCookiesJar";
 
 const PORT=process.env.CACP_PORT||3000;
 const REDIRECT_PATH=process.env.CACP_REDIRECT_PATH||'/proxy';
@@ -97,20 +98,6 @@ function remapUrl(url: string|null, redirectUrl: string, path: string, targetUrl
         }
     }
     throw new Error ("Cannot remap a null url");
-}
-
-function transformCookie(originalText: string) :string {
-
-    const cookie = Cookie.parse(originalText);
-    if (cookie==null) {
-        return originalText;    // If the cookie cannot be parsed, just send it
-    }
-
-    cookie.domain=null;     // Remove all the domain stuff
-    cookie.sameSite='None'; // Ensure the browser will send the cookie all the time
-    cookie.secure=false;   // Force non secure cookies
-    cookie.path='/';    // Remove the path argument
-    return cookie.cookieString();
 }
 
 export async function handleProxyRequest (req: Request, res: Response, next: NextFunction): Promise<void> {
