@@ -72,4 +72,20 @@ describe('Overall Axios tests', () => {
 
     });
 
+    it("should support standard engine",  (done) => {
+        axios.request({
+            url: TEST_SERVER_URL+'/'+process.env.SERVER_ADDRESS + '/index.html',
+            params: {
+              engine:'standard'
+            },
+            method:'get'
+        }).then( response => {
+            expect(response.status).toBe(200);
+            expect(response.data).toContain("Test Title");
+            done();
+        }, error => {
+            done (error);
+        })
+    });
+
 });

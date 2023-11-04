@@ -271,7 +271,7 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
 
         let response:AxiosResponse|null=null;
 
-        if (req.query['engine']!=null) {
+        if ((req.query['engine']!=null) && (req.query['engine'] as string).toLowerCase()!=='standard') {
             const engine=(req.query['engine'] as string).toLowerCase();
             if( engine==='chrome' || engine==='cloudflare') {
                 const chromeResult = await chromeEngine.request(engine, config, BYPASS_CHROME_SANDBOX);
