@@ -348,6 +348,10 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
                 responseBody.pipe(res).on('finish', () => {
                     next();
                 }).on('error', (err: any)=> {
+                    if (debugMode)
+                        console.log(logId+"Error sending response: ", err);
+                    if (logMode)
+                        console.log(logId+"Error sending response: ", err.toString());
                     next(err);
                 });
             } else {
@@ -421,6 +425,19 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): a
             ret.url=axiosResponse.config.url;
             ret.method=axiosResponse.config.method;
             ret.headers=axiosResponse.config.headers;
+        }
+        if( axiosResponse.data==null) {
+            ret.bodyType='Empty body';
+        } else if (axiosResponse.data.pipe != null) {
+            ret.bodyType='Body is a stream';
+        } else {
+            ret.bodyType='Body is string data';
+            try {
+                const bodyText = axiosResponse.data.toString();
+                ret.bodyLength=bodyText.length;
+            } catch (error) {
+                ret.bodyType='Body is unknown data';
+            }
         }
     }
     return ret;
