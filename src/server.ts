@@ -394,17 +394,16 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): a
     const ret:any={};
     if( item instanceof AxiosError) {
         const axiosError = item as AxiosError;
-        if( axiosError.response!=null) {
-            return convertForLog(axiosError.response);
-        } else {
-            ret.status=500;
-            ret.message='No responses received.';
-            if( axiosError.config!=null) {
-                ret.url=axiosError.config.url;
-                ret.method=axiosError.config.method;
-                ret.headers=axiosError.config.headers;
+        ret.status=axiosError.status;
+        ret.message=axiosError.message;
 
-            }
+        if (ret.status==null) {
+            ret.status=500;
+        }
+        if( axiosError.config!=null) {
+            ret.url=axiosError.config.url;
+            ret.method=axiosError.config.method;
+            ret.headers=axiosError.config.headers;
         }
     } else if (((item as any).config==null) &&
             ((item as any).toJSON==null)) {
