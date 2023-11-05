@@ -397,6 +397,10 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): a
         ret.status=axiosError.status;
         ret.message=axiosError.message;
 
+        if( (ret.message==null) && (ret.response?.message!=null)) {
+            ret.message=ret.response.message;
+        }
+
         if (ret.status==null) {
             ret.status=500;
         }
@@ -411,6 +415,7 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): a
         const expressResponse = item as Response;
         ret.status=expressResponse.statusCode;
         ret.message=expressResponse.statusMessage;
+
         if (expressResponse.req!=null) {
             ret.url=expressResponse.req.url;
             ret.method=expressResponse.req.method;

@@ -1,9 +1,6 @@
 const express = require('express');
     // Starts the proxy server
 const testedServer = require('../src/server');
-const {Request, Response} = require("express");
-const {app, handleProxyRequest} = require("../src/server");
-const {Cookie} = require("tough-cookie");
 
 
 module.exports = async () => {
@@ -47,7 +44,6 @@ module.exports = async () => {
             });
             path=path.substring('/cookie'.length);
         }
-
         res.sendFile(process.cwd()+'/tests/files'+path);
 
     });
