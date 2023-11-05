@@ -5,6 +5,7 @@ import {chromeEngine} from './chrome-engine/chromeEngine';
 import {Cookie} from "tough-cookie";
 import { argv } from 'process';
 import * as http from "http";
+import {transformCookie} from "./chrome-engine/fillCookiesJar";
 
 const PORT=process.env.CACP_PORT||3000;
 const REDIRECT_PATH=process.env.CACP_REDIRECT_PATH||'/proxy';
@@ -97,20 +98,6 @@ function remapUrl(url: string|null, redirectUrl: string, path: string, targetUrl
         }
     }
     throw new Error ("Cannot remap a null url");
-}
-
-function transformCookie(originalText: string) :string {
-
-    const cookie = Cookie.parse(originalText);
-    if (cookie==null) {
-        return originalText;    // If the cookie cannot be parsed, just send it
-    }
-
-    cookie.domain=null;     // Remove all the domain stuff
-    cookie.sameSite='None'; // Ensure the browser will send the cookie all the time
-    cookie.secure=false;   // Force non secure cookies
-    cookie.path='/';    // Remove the path argument
-    return cookie.cookieString();
 }
 
 export async function handleProxyRequest (req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -284,7 +271,7 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
 
         let response:AxiosResponse|null=null;
 
-        if (req.query['engine']!=null) {
+        if ((req.query['engine']!=null) && (req.query['engine'] as string).toLowerCase()!=='standard') {
             const engine=(req.query['engine'] as string).toLowerCase();
             if( engine==='chrome' || engine==='cloudflare') {
                 const chromeResult = await chromeEngine.request(engine, config, BYPASS_CHROME_SANDBOX);
@@ -361,6 +348,10 @@ export async function handleProxyRequest (req: Request, res: Response, next: Nex
                 responseBody.pipe(res).on('finish', () => {
                     next();
                 }).on('error', (err: any)=> {
+                    if (debugMode)
+                        console.log(logId+"Error sending response: ", err);
+                    if (logMode)
+                        console.log(logId+"Error sending response: ", err.toString());
                     next(err);
                 });
             } else {
@@ -403,17 +394,20 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): a
     const ret:any={};
     if( item instanceof AxiosError) {
         const axiosError = item as AxiosError;
-        if( axiosError.response!=null) {
-            return convertForLog(axiosError.response);
-        } else {
-            ret.status=500;
-            ret.message='No responses received.';
-            if( axiosError.config!=null) {
-                ret.url=axiosError.config.url;
-                ret.method=axiosError.config.method;
-                ret.headers=axiosError.config.headers;
+        ret.status=axiosError.status;
+        ret.message=axiosError.message;
 
-            }
+        if( (ret.message==null) && (ret.response?.message!=null)) {
+            ret.message=ret.response.message;
+        }
+
+        if (ret.status==null) {
+            ret.status=500;
+        }
+        if( axiosError.config!=null) {
+            ret.url=axiosError.config.url;
+            ret.method=axiosError.config.method;
+            ret.headers=axiosError.config.headers;
         }
     } else if (((item as any).config==null) &&
             ((item as any).toJSON==null)) {
@@ -421,6 +415,7 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): a
         const expressResponse = item as Response;
         ret.status=expressResponse.statusCode;
         ret.message=expressResponse.statusMessage;
+
         if (expressResponse.req!=null) {
             ret.url=expressResponse.req.url;
             ret.method=expressResponse.req.method;
@@ -434,6 +429,19 @@ function convertForLog (item:AxiosError<any,any> | AxiosResponse | Response ): a
             ret.url=axiosResponse.config.url;
             ret.method=axiosResponse.config.method;
             ret.headers=axiosResponse.config.headers;
+        }
+        if( axiosResponse.data==null) {
+            ret.bodyType='Empty body';
+        } else if (axiosResponse.data.pipe != null) {
+            ret.bodyType='Body is a stream';
+        } else {
+            ret.bodyType='Body is string data';
+            try {
+                const bodyText = axiosResponse.data.toString();
+                ret.bodyLength=bodyText.length;
+            } catch (error) {
+                ret.bodyType='Body is unknown data';
+            }
         }
     }
     return ret;

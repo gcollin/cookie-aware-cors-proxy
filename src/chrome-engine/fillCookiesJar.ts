@@ -45,8 +45,23 @@ function cookieAsString(foundCookie: Protocol.Network.Cookie) {
         ret.expires=new Date (foundCookie.expires);
     else
         ret.expires="Infinity";
-    return ret.cookieString();
+    return ret.toString();
 }
+
+export function transformCookie(originalText: string) :string {
+
+    const cookie = Cookie.parse(originalText);
+    if (cookie==null) {
+        return originalText;    // If the cookie cannot be parsed, just send it
+    }
+
+    cookie.domain=null;     // Remove all the domain stuff
+    cookie.sameSite='None'; // Ensure the browser will send the cookie all the time
+    cookie.secure=false;   // Force non secure cookies
+    cookie.path='/';    // Remove the path argument
+    return cookie.toString();
+}
+
 
 export async function runThroughChrome(options:AxiosRequestConfig, bypassSandbox:boolean, userAgent?:string):Promise<AxiosResponse> {
     //const jar = options.jar;
