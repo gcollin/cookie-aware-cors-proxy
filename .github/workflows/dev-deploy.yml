@@ -12,15 +12,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: 'dev'
           token: ${{secrets.GCOLLIN_ACTIONS_TOKEN}}
-      - name: Use Node.js 18
-        uses: actions/setup-node@v3
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: '18.x'
+          node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
       - name: Install
@@ -40,7 +40,7 @@ jobs:
       - name: Deploy to Shared server
         uses: appleboy/scp-action@master
         with:
-          host: shared.collin.best
+          host: collinfr.net
           username: cac-proxy
           key: ${{ secrets.SHARED_KEY }}
           passphrase: ${{ secrets.SHARED_PASSPHRASE }}
@@ -51,7 +51,7 @@ jobs:
       - name: Restart in Shared server
         uses: appleboy/ssh-action@master
         with:
-          host: shared.collin.best
+          host: collinfr.net
           username: cac-proxy
           key: ${{ secrets.SHARED_KEY }}
           passphrase: ${{ secrets.SHARED_PASSPHRASE }}
