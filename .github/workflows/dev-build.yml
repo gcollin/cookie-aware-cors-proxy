@@ -28,6 +28,7 @@ jobs:
           cache: 'npm'
       - name: Install
         run: |
+          npx @puppeteer/browsers install chrome@stable
           npm install
       - name: Unit Tests
         run: |
