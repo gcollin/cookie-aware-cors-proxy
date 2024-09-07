@@ -21,10 +21,10 @@ jobs:
           fetch-depth: 0
           ref: 'dev'
           token: ${{secrets.GCOLLIN_ACTIONS_TOKEN}}
-      - name: Use Node.js version 16
+      - name: Use Node.js version 22
         uses: actions/setup-node@v4
         with:
-          node-version: '16.x'
+          node-version: '22.x'
           cache: 'npm'
       - name: Install
         run: |
