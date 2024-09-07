@@ -10,7 +10,7 @@ module.exports = async () => {
     const app = express();
 
     await new Promise(function(resolve) {
-        server = app.listen(0,'127.0.0.1",function() {
+        server = app.listen(0,'127.0.0.1',function() {
             console.log('Running express on ',server.address());
             resolve();
         });
