@@ -11,7 +11,7 @@ module.exports = async () => {
 
     await new Promise(function(resolve) {
         server = app.listen(0, "localhost.localdomain", function() {
-            console.log('Running express on '+server.address());
+            console.log('Running express on ',server.address());
             resolve();
         });
     });
