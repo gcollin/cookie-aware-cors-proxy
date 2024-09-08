@@ -1,19 +1,10 @@
-import puppeteer from 'puppeteer-extra';
-import {Browser, PuppeteerLaunchOptions} from 'puppeteer';
-import {AxiosRequestConfig} from "axios";
+import puppeteer from "puppeteer-extra";
+import { Browser, PuppeteerLaunchOptions } from "puppeteer";
+import { AxiosRequestConfig } from "axios";
 
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import * as fs from "fs";
-import {BrowserFetcher} from "puppeteer";
-import path from "path";
-import * as os from "os";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
-const {
-  PUPPETEER_HEADLESS = 'true',
-  PUPPETEER_IGNORE_HTTPS_ERROR = 'false',
-  HTTP_PROXY,
-  HTTPS_PROXY
-} = process.env;
+const { PUPPETEER_HEADLESS = "true", HTTP_PROXY, HTTPS_PROXY } = process.env;
 
 /*let chromium:any;
 let puppeteerCore;
@@ -35,62 +26,50 @@ if (!puppeteerCore) {
 
 puppeteer.use(StealthPlugin());
 
-export async function createBrowser(options: AxiosRequestConfig, bypassSandbox:boolean, userAgent?:string):Promise <Browser>{
-  const config= {
+export async function createBrowser(
+  options: AxiosRequestConfig,
+  bypassSandbox: boolean,
+  userAgent?: string
+): Promise<Browser> {
+  const config = {
     proxy: HTTP_PROXY || HTTPS_PROXY,
     browserWSEndpoint: undefined,
-    browserUrl:undefined,
-    puppeteerOptions: {args:undefined, dumpio:false}
+    browserUrl: undefined,
+    puppeteerOptions: { args: undefined, dumpio: false },
   };
-  const ignoreHTTPSErrors = PUPPETEER_IGNORE_HTTPS_ERROR === 'true';
 
   if (config.browserWSEndpoint || config.browserUrl) {
-    return puppeteer.connect({ browserWSEndpoint:config.browserWSEndpoint, browserURL:config.browserUrl, ignoreHTTPSErrors });
+    return puppeteer.connect({
+      browserWSEndpoint: config.browserWSEndpoint,
+      browserURL: config.browserUrl,
+    });
   }
 
-  let args = []
-  if( bypassSandbox) {
-    args.push('--no-sandbox', '--disable-setuid-sandbox');
+  let args = [];
+  if (bypassSandbox) {
+    args.push("--no-sandbox", "--disable-setuid-sandbox");
   }
 
-  if (userAgent!=null) {
-    args.push('--user-agent=' + userAgent);
+  if (userAgent != null) {
+    args.push("--user-agent=" + userAgent);
   }
-  if(config.puppeteerOptions.args) {
-    args = args.concat(config.puppeteerOptions.args)
+  if (config.puppeteerOptions.args) {
+    args = args.concat(config.puppeteerOptions.args);
   }
-/*  if (proxy) {
+  /*  if (proxy) {
     args.push(`--proxy-server=${proxy}`);
   }*/
 
-//  const execPath=puppeteer.executablePath();
-  let puppeteerOptions:PuppeteerLaunchOptions = {
-    headless: PUPPETEER_HEADLESS === 'false',
-    ignoreHTTPSErrors,
+  //  const execPath=puppeteer.executablePath();
+  const puppeteerOptions: PuppeteerLaunchOptions = {
+    headless: PUPPETEER_HEADLESS === "false",
     defaultViewport: undefined,
-    channel: 'chrome',
-    executablePath: '/usr/lib/chromium/chromium',
+    channel: "chrome",
     ...config.puppeteerOptions,
-    args
+    args,
   };
 
-    // Try to find the best executablePath
-  const fetcher = new BrowserFetcher({product:'chrome',  path:path.join(os.homedir(),'.cache/puppeteer/chrome')});
-
-  const revisions=fetcher.localRevisions().sort((a, b) => {
-    return Number.parseInt(b).valueOf() - Number.parseInt(a).valueOf();
-  });
-
-  if( revisions.length==0) {
-      // Prefer chrome to chromium if it exists
-    if (fs.existsSync('/opt/google/chrome/chrome')) {
-      puppeteerOptions.executablePath='/opt/google/chrome/chrome';
-    }
-  } else {
-    puppeteerOptions.executablePath=fetcher.revisionInfo(revisions[0]).executablePath;
-  }
-
- // console.debug("Using Chromium/Chrome from :", puppeteerOptions.executablePath);
+  // console.debug("Using Chromium/Chrome from :", puppeteerOptions.executablePath);
 
   /*if (chromium) {
     puppeteerOptions = {
@@ -101,13 +80,12 @@ export async function createBrowser(options: AxiosRequestConfig, bypassSandbox:b
       headless: chromium.headless
     };
   }*/
-  puppeteerOptions.headless=true;
-  puppeteerOptions.dumpio=false;
+  puppeteerOptions.headless = true;
+  puppeteerOptions.dumpio = false;
 
   return await puppeteer.launch(puppeteerOptions);
 }
 
-
-export function cleanUpStatusText (msg:string): string {
-  return msg?.replace(/\n|\r/g, ' ').substring(0, Math.min(50, msg.length-1))
+export function cleanUpStatusText(msg: string): string {
+  return msg?.replace(/\n|\r/g, " ").substring(0, Math.min(50, msg.length - 1));
 }

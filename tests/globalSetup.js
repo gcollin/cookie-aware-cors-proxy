@@ -10,14 +10,13 @@ module.exports = async () => {
     const app = express();
 
     await new Promise(function(resolve) {
-        server = app.listen(0, "localhost.localdomain", function() {
-            let address = server.address();
-            console.log(` Running express on '${JSON.stringify(address)}'...`);
+        server = app.listen(0,'127.0.0.1',function() {
+            console.log('Running express on ',server.address());
             resolve();
         });
     });
 
-    let address = 'localhost.localdomain';
+    let address = server.address().address;
     global.server = server;
     global.testedServer = testedServer.getProxyServer();
     //console.log("Setup:", (global.testedServer==null));
@@ -44,6 +43,7 @@ module.exports = async () => {
             });
             path=path.substring('/cookie'.length);
         }
+        
         res.sendFile(process.cwd()+'/tests/files'+path);
 
     });
