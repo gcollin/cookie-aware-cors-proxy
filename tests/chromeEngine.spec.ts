@@ -1,7 +1,6 @@
-import axios from "axios";
 import { chromeEngine } from "../src/chrome-engine/chromeEngine";
 
-//jest.mock('axios');
+const CHROME_EXEC = process.env.CACP_CHROME_EXEC;
 
 describe("Chrome tests", () => {
   const TEST_SERVER_URL = "http://localhost:3000/proxy/debug";
@@ -18,7 +17,8 @@ describe("Chrome tests", () => {
           url: process.env.SERVER_ADDRESS + "/index.html",
           method: "get",
         },
-        false
+        false,
+        CHROME_EXEC
       )
       .then((response) => {
         expect(response.status).toEqual(200);
@@ -37,7 +37,8 @@ describe("Chrome tests", () => {
           url: process.env.SERVER_ADDRESS + "/redirect/index.html",
           method: "get",
         },
-        true
+        true,
+        CHROME_EXEC
       )
       .then((response) => {
         expect(response.status).toEqual(200);

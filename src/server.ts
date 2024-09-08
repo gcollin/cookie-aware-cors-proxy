@@ -18,6 +18,7 @@ const DEBUG_MODE = process.env.CACP_DEBUG === "TRUE";
 const LOG_MODE = process.env.CACP_LOG === "TRUE";
 const NGINX_PATH = process.env.CACP_NGINX_PATH || "/proxy";
 const BYPASS_CHROME_SANDBOX = process.env.CACP_BYPASS_SANDBOX == "TRUE";
+const CHROME_EXEC = process.env.CACP_CHROME_EXEC;
 
 export const app = express();
 app.use(express.json()); // for parsing application/json
@@ -353,7 +354,8 @@ export async function handleProxyRequest(
         const chromeResult = await chromeEngine.request(
           engine,
           config,
-          BYPASS_CHROME_SANDBOX
+          BYPASS_CHROME_SANDBOX,
+          CHROME_EXEC
         );
         if (chromeResult != null) {
           response = chromeResult;
@@ -568,7 +570,7 @@ if (argv[2] === "testChrome") {
     url = argv[3];
   }
   chromeEngine
-    .request("chrome", { url: url, method: "get" }, BYPASS_CHROME_SANDBOX)
+    .request("chrome", { url: url, method: "get" }, BYPASS_CHROME_SANDBOX, CHROME_EXEC)
     .then((value) => {
       console.log("Response received with status: " + value.status);
       console.log(value.data);
