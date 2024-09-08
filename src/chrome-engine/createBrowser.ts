@@ -29,6 +29,7 @@ puppeteer.use(StealthPlugin());
 export async function createBrowser(
   options: AxiosRequestConfig,
   bypassSandbox: boolean,
+  browserExec?:string,
   userAgent?: string
 ): Promise<Browser> {
   const config = {
@@ -64,11 +65,15 @@ export async function createBrowser(
   const puppeteerOptions: PuppeteerLaunchOptions = {
     headless: PUPPETEER_HEADLESS === "false",
     defaultViewport: undefined,
-    channel: "chrome",
+    browser:'chrome',
+    channel: 'chrome',
     ...config.puppeteerOptions,
     args,
   };
 
+  if ((browserExec!=null) && (browserExec.length>0)) {
+    puppeteerOptions.executablePath=browserExec;
+  }
   // console.debug("Using Chromium/Chrome from :", puppeteerOptions.executablePath);
 
   /*if (chromium) {
